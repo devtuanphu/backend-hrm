@@ -1,0 +1,43 @@
+{
+  "name": "backend-hrm-new",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A Strapi application",
+  "scripts": {
+    "develop": "strapi develop",
+    "start": "strapi start",
+    "build": "strapi build",
+    "strapi": "strapi",
+    "deploy": "strapi deploy"
+  },
+  "dependencies": {
+    "@strapi/plugin-cloud": "4.25.11",
+    "@strapi/plugin-i18n": "4.25.11",
+    "@strapi/plugin-users-permissions": "4.25.11",
+    "@strapi/strapi": "4.25.11",
+    "jimp": "^1.6.0",
+    "jsqr": "^1.4.0",
+    "mysql": "2.18.1",
+    "nodemailer": "^6.9.16",
+    "qrcode": "^1.5.4",
+    "qrcode-reader": "^1.0.4",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "react-router-dom": "5.3.4",
+    "styled-components": "5.3.3"
+  },
+  "author": {
+    "name": "A Strapi developer"
+  },
+  "strapi": {
+    "uuid": "391a4372-00cd-4da1-ad5e-452791b19531"
+  },
+  "engines": {
+    "node": ">=18.0.0 <=20.x.x",
+    "npm": ">=6.0.0"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/qrcode": "^1.5.5"
+  }
+}

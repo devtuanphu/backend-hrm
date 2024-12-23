@@ -1,0 +1,19 @@
+{
+  "collectionName": "components_share_check_ins",
+  "info": {
+    "displayName": "Check In",
+    "icon": "alien"
+  },
+  "options": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "time": {
+      "type": "datetime"
+    },
+    "location": {
+      "type": "string"
+    }
+  }
+}
