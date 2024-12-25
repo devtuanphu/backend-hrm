@@ -1,0 +1,25 @@
+{
+  "collectionName": "components_share_task_details",
+  "info": {
+    "displayName": "TaskDetails",
+    "description": ""
+  },
+  "options": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "due_date": {
+      "type": "date"
+    },
+    "progess": {
+      "type": "integer"
+    },
+    "time_create": {
+      "type": "date"
+    }
+  }
+}

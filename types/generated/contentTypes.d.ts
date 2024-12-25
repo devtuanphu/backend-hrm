@@ -815,6 +815,7 @@ export interface PluginUsersPermissionsUser extends Schema.CollectionType {
     faceDescriptor: Attribute.JSON;
     face: Attribute.JSON;
     faceImage: Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
+    Task: Attribute.Component<'share.task-details', true>;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     createdBy: Attribute.Relation<

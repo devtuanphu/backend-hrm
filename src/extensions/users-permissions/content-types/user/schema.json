@@ -102,14 +102,20 @@
       "type": "json"
     },
     "faceImage": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
       "allowedTypes": [
         "images",
         "files",
         "videos",
         "audios"
-      ],
-      "type": "media",
-      "multiple": false
+      ]
+    },
+    "Task": {
+      "type": "component",
+      "repeatable": true,
+      "component": "share.task-details"
     }
   }
 }
