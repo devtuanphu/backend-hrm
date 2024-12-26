@@ -49,6 +49,15 @@ module.exports = (plugin) => {
         policies: [],
         middlewares: [],
       },
+    },
+    {
+      method: "PUT",
+      path: "/update-progress",
+      handler: "user.updateProgress",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
     }
   );
 
@@ -236,6 +245,59 @@ module.exports = (plugin) => {
     } catch (error) {
       strapi.log.error("Error fetching tasks by user ID:", error);
       return ctx.internalServerError("An error occurred while fetching tasks.");
+    }
+  };
+  plugin.controllers.user.updateProgress = async (ctx) => {
+    const { userId, taskId, progress } = ctx.request.body;
+
+    if (!userId || !taskId || progress === undefined) {
+      return ctx.badRequest("User ID, Task ID, và progress là bắt buộc.");
+    }
+
+    if (progress < 0 || progress > 100) {
+      return ctx.badRequest(
+        "Giá trị progress phải nằm trong khoảng từ 0 đến 100."
+      );
+    }
+
+    try {
+      // Lấy user và populate Task
+      const user = await strapi.entityService.findOne(
+        "plugin::users-permissions.user",
+        userId,
+        { populate: ["Task"] }
+      );
+
+      if (!user) {
+        return ctx.notFound("Không tìm thấy người dùng.");
+      }
+
+      // Tìm task cần cập nhật
+      const taskIndex = user.Task.findIndex((task) => task.id === taskId);
+      if (taskIndex === -1) {
+        return ctx.notFound("Không tìm thấy nhiệm vụ.");
+      }
+
+      // Cập nhật progress cho task
+      user.Task[taskIndex].progess = progress;
+
+      // Lưu lại mảng Task đã cập nhật
+      await strapi.entityService.update(
+        "plugin::users-permissions.user",
+        userId,
+        {
+          data: { Task: user.Task },
+        }
+      );
+
+      return ctx.send({
+        success: true,
+        message: "Cập nhật progress thành công.",
+        task: user.Task[taskIndex],
+      });
+    } catch (error) {
+      strapi.log.error("Lỗi khi cập nhật progress:", error);
+      return ctx.internalServerError("Đã xảy ra lỗi khi cập nhật progress.");
     }
   };
 
