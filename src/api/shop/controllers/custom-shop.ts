@@ -117,7 +117,7 @@ export default factories.createCoreController(
             ? {
                 title: "Cảnh báo check-in sai vị trí",
                 message: `Nhân viên ${
-                  checkIn.userName || "không rõ"
+                  checkIn.name || "không rõ"
                 } đã check-in sai vị trí tại cửa hàng ${shop.name}.`,
                 data: { shopId: shop.id, distance },
                 read: false,
