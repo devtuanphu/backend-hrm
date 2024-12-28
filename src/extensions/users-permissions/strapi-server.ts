@@ -3,6 +3,7 @@ const user = require("./content-types/user");
 import { forgotPassWord } from "../../template/forgotPassword";
 import { sendEmail } from "../../services/email";
 module.exports = (plugin) => {
+  plugin.contentTypes.user = user;
   plugin.routes["content-api"].routes.push(
     {
       method: "POST",

@@ -382,6 +382,7 @@ export interface ApiNotificationNotification extends Schema.CollectionType {
       'oneToOne',
       'plugin::users-permissions.user'
     >;
+    data: Attribute.JSON;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     publishedAt: Attribute.DateTime;

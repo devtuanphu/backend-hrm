@@ -26,6 +26,9 @@
       "type": "relation",
       "relation": "oneToOne",
       "target": "plugin::users-permissions.user"
+    },
+    "data": {
+      "type": "json"
     }
   }
 }

@@ -1,8 +1,13 @@
 import { sendEmail } from "../../../../services/email";
 import { emailTemplate } from "../../../../template/emailTemplate";
+
 module.exports = {
-  async afterCreate(event) {
+  async afterCreate(event: { result: any }) {
+    console.log("Lifecycle file loaded");
+    console.log("afterCreate event:", event);
+
     const { result } = event; // `result` là dữ liệu của user vừa được tạo
+    console.log("User vừa được tạo:", result);
 
     if (result && result.email) {
       try {
@@ -18,7 +23,7 @@ module.exports = {
         // Gửi email mã xác thực
         await sendEmail({
           to: result.email,
-          subject: "Xác thực tài khoản HRM",
+          subject: "Xác thực tài khoản TimeSo",
           html: htmlContent, // Gửi email với nội dung HTML
         });
 
