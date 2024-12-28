@@ -66,117 +66,49 @@ export default factories.createCoreController(
             ]
           : [{ ...checkIn, isLocation, distance: distance.toFixed(2) }];
 
-        const updatedShop = await strapi.entityService.update(
-          "api::shop.shop",
-          id,
-          {
-            data: { checkIn: updatedCheckIn },
-          }
-        );
+        await strapi.entityService.update("api::shop.shop", id, {
+          data: { checkIn: updatedCheckIn },
+        });
 
         const userId = checkIn.userId;
         const ownerId = shop.owner?.id; // Chủ shop
 
-        // Gửi thông báo theo từng trường hợp
+        // Thông báo cho từng trường hợp
         if (isLocation) {
-          // Thông báo cho người check-in
-          const userNotificationData = {
-            title: "Check-in thành công",
-            message: `Bạn đã check-in thành công tại cửa hàng ${shop.name}.`,
-            data: { shopId: shop.id, distance },
-            read: false,
-            publishedAt: new Date(),
-            users: [userId],
-          };
-
-          await strapi.entityService.create("api::notification.notification", {
-            data: userNotificationData,
-          });
-
-          // Gửi push notification
-          const targetUser = await strapi.entityService.findOne(
-            "plugin::users-permissions.user",
-            userId
+          // Gửi thông báo thành công cho người check-in
+          await customNotificationService.sendNotification(
+            [userId],
+            "Check-in thành công",
+            `Bạn đã check-in thành công tại cửa hàng ${shop.name}.`,
+            { shopId: Number(shop.id), distance }
           );
-          if (
-            targetUser?.tokenExpo &&
-            Expo.isExpoPushToken(targetUser.tokenExpo)
-          ) {
-            await customNotificationService.sendNotification(
-              [userId],
-              userNotificationData.title,
-              userNotificationData.message,
-              userNotificationData.data
-            );
-          }
         } else {
-          // Thông báo cho người check-in
-          const userNotificationData = {
-            title: "Check-in không thành công",
-            message: `Bạn đã check-in sai vị trí. Vui lòng đến khu vực cửa hàng ${shop.name} để thực hiện check-in.`,
-            data: { shopId: shop.id, distance },
-            read: false,
-            publishedAt: new Date(),
-            users: [userId],
-          };
-
-          await strapi.entityService.create("api::notification.notification", {
-            data: userNotificationData,
-          });
-
-          const targetUser = await strapi.entityService.findOne(
-            "plugin::users-permissions.user",
-            userId
+          // Gửi thông báo lỗi cho người check-in
+          await customNotificationService.sendNotification(
+            [userId],
+            "Check-in không thành công",
+            `Bạn đã check-in sai vị trí. Vui lòng đến khu vực cửa hàng ${shop.name} để thực hiện check-in.`,
+            { shopId: Number(shop.id), distance }
           );
-          if (
-            targetUser?.tokenExpo &&
-            Expo.isExpoPushToken(targetUser.tokenExpo)
-          ) {
-            await customNotificationService.sendNotification(
-              [userId],
-              userNotificationData.title,
-              userNotificationData.message,
-              userNotificationData.data
-            );
-          }
 
-          // Thông báo cho chủ cửa hàng
+          // Gửi cảnh báo cho chủ cửa hàng
           if (ownerId) {
-            const ownerNotificationData = {
-              title: "Cảnh báo check-in sai vị trí",
-              message: `Nhân viên đã check-in sai vị trí tại cửa hàng ${shop.name}.`,
-              data: { shopId: shop.id, userId, distance },
-              read: false,
-              publishedAt: new Date(),
-              users: [ownerId],
-            };
-
-            await strapi.entityService.create(
-              "api::notification.notification",
-              {
-                data: ownerNotificationData,
-              }
-            );
-
-            const targetOwner = await strapi.entityService.findOne(
+            const user = await strapi.entityService.findOne(
               "plugin::users-permissions.user",
-              ownerId
+              userId
             );
-            if (
-              targetOwner?.tokenExpo &&
-              Expo.isExpoPushToken(targetOwner.tokenExpo)
-            ) {
-              await customNotificationService.sendNotification(
-                [ownerId.toString()],
-                ownerNotificationData.title,
-                ownerNotificationData.message,
-                ownerNotificationData.data
-              );
-            }
+            const userName = user?.name || "Nhân viên không xác định";
+
+            await customNotificationService.sendNotification(
+              [ownerId.toString()],
+              "Cảnh báo check-in sai vị trí",
+              `${userName} đã check-in sai vị trí tại cửa hàng ${shop.name}.`,
+              { shopId: Number(shop.id), userId, distance }
+            );
           }
         }
 
-        return ctx.send(updatedShop); // Trả về kết quả cập nhật
+        return ctx.send({ success: true });
       } catch (err) {
         strapi.log.error(err);
         return ctx.internalServerError("Something went wrong");

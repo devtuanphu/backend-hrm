@@ -1,10 +1,23 @@
-import { Expo } from "expo-server-sdk";
+import { Expo, ExpoPushMessage, ExpoPushTicket } from "expo-server-sdk";
 
 const expo = new Expo();
 
 interface User {
   id: string;
-  tokenExpo?: string; // tokenExpo có thể không tồn tại
+  tokenExpo?: string;
+}
+
+interface NotificationData {
+  shopId?: number;
+  userId?: string;
+  distance?: number;
+  [key: string]: any; // Allow additional dynamic fields
+}
+
+interface SendNotificationResult {
+  success: boolean;
+  error?: string;
+  tickets?: ExpoPushTicket[];
 }
 
 const customNotificationService = {
@@ -12,29 +25,29 @@ const customNotificationService = {
     userIds: string[],
     title: string,
     message: string,
-    data: Record<string, any> = {}
-  ): Promise<{ success: boolean; error?: string; tickets?: any[] }> {
+    data: NotificationData = {}
+  ): Promise<SendNotificationResult> {
     try {
       if (!Array.isArray(userIds) || userIds.length === 0) {
         strapi.log.warn("Danh sách userIds trống hoặc không hợp lệ.");
         return { success: false, error: "Danh sách userIds không hợp lệ." };
       }
 
-      // Lấy thông tin user từ cơ sở dữ liệu
-      const users: User[] = (await strapi.entityService.findMany(
+      // Fetch users from the database
+      const users: User[] = await strapi.entityService.findMany(
         "plugin::users-permissions.user",
         {
           filters: { id: { $in: userIds } },
           fields: ["id", "tokenExpo"],
         }
-      )) as User[];
+      );
 
       if (!users || users.length === 0) {
         strapi.log.warn("Không tìm thấy người dùng hợp lệ.");
         return { success: false, error: "Không tìm thấy người dùng hợp lệ." };
       }
 
-      // Lọc những user có ExpoPushToken hợp lệ
+      // Filter valid users with valid Expo push tokens
       const validUsers = users.filter(
         (user) => user.tokenExpo && Expo.isExpoPushToken(user.tokenExpo)
       );
@@ -44,18 +57,19 @@ const customNotificationService = {
         return { success: false, error: "Không có ExpoPushToken hợp lệ." };
       }
 
-      // Chuẩn bị danh sách thông báo
-      const messages = validUsers.map((user) => ({
+      // Prepare push notifications
+      const messages: ExpoPushMessage[] = validUsers.map((user) => ({
         to: user.tokenExpo as string,
         sound: "default",
         title,
         body: message,
         data,
-        ttl: 86400, // Thời gian sống của thông báo
       }));
 
+      // Chunk messages for Expo push notification service
       const chunks = expo.chunkPushNotifications(messages);
-      const tickets: any[] = [];
+      const tickets: ExpoPushTicket[] = [];
+
       for (const chunk of chunks) {
         try {
           const ticketChunk = await expo.sendPushNotificationsAsync(chunk);
@@ -65,11 +79,11 @@ const customNotificationService = {
         }
       }
 
-      // Lưu thông báo vào cơ sở dữ liệu với danh sách người dùng liên quan
+      // Save the notification to the database
       try {
         await strapi.entityService.create("api::notification.notification", {
           data: {
-            users: users.map((user) => user.id), // Lưu danh sách user IDs
+            users: userIds,
             title,
             message,
             data: JSON.stringify(data),
@@ -82,7 +96,7 @@ const customNotificationService = {
       }
 
       return { success: true, tickets };
-    } catch (error) {
+    } catch (error: any) {
       strapi.log.error("Lỗi trong customNotificationService:", error);
       return { success: false, error: error.message };
     }
