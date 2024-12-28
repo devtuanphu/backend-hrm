@@ -89,12 +89,11 @@ export default factories.createCoreController(
             users: [userId],
           };
 
-          // Lưu thông báo cho người check-in
+          // Lưu và gửi thông báo cho người check-in
           await strapi.entityService.create("api::notification.notification", {
             data: notificationData,
           });
 
-          // Gửi thông báo cho người check-in
           await customNotificationService.sendNotification(
             [userId],
             notificationData.title,
@@ -103,6 +102,7 @@ export default factories.createCoreController(
           );
         } else {
           // Trường hợp sai vị trí
+          // Thông báo cho người check-in
           const checkInUserNotification = {
             title: "Check-in không thành công",
             message: `Bạn đã check-in sai vị trí. Vui lòng đến khu vực cửa hàng ${shop.name} để thực hiện check-in.`,
@@ -112,16 +112,19 @@ export default factories.createCoreController(
             users: [userId],
           };
 
-          const ownerNotification = {
-            title: "Cảnh báo check-in sai vị trí",
-            message: `Nhân viên ${
-              checkIn.name || "không rõ"
-            } đã check-in sai vị trí tại cửa hàng ${shop.name}.`,
-            data: { shopId: shop.id, distance },
-            read: false,
-            publishedAt: new Date(),
-            users: [ownerId],
-          };
+          // Thông báo cho chủ shop (nếu có)
+          const ownerNotification = ownerId
+            ? {
+                title: "Cảnh báo check-in sai vị trí",
+                message: `Nhân viên ${
+                  checkIn.userName || "không rõ"
+                } đã check-in sai vị trí tại cửa hàng ${shop.name}.`,
+                data: { shopId: shop.id, distance },
+                read: false,
+                publishedAt: new Date(),
+                users: [ownerId],
+              }
+            : null;
 
           // Lưu thông báo cho người check-in
           await strapi.entityService.create("api::notification.notification", {
@@ -129,7 +132,7 @@ export default factories.createCoreController(
           });
 
           // Lưu thông báo cho chủ shop (nếu có)
-          if (ownerId) {
+          if (ownerNotification) {
             await strapi.entityService.create(
               "api::notification.notification",
               {
