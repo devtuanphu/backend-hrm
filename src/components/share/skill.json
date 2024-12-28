@@ -1,0 +1,13 @@
+{
+  "collectionName": "components_share_skills",
+  "info": {
+    "displayName": "Skill",
+    "icon": "alien"
+  },
+  "options": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    }
+  }
+}

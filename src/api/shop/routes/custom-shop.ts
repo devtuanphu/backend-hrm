@@ -18,5 +18,14 @@ export default {
         middlewares: [],
       },
     },
+    {
+      method: "GET",
+      path: "/shops/:id/checkins",
+      handler: "custom-shop.getCheckInsByDate",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
   ],
 };

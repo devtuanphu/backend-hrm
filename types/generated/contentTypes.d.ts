@@ -464,7 +464,10 @@ export interface ApiShopShop extends Schema.CollectionType {
     cccdAfter: Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
     referredBy: Attribute.String;
     checkIn: Attribute.Component<'share.check-in', true>;
-    ip: Attribute.String;
+    latitude: Attribute.String;
+    longitude: Attribute.String;
+    space: Attribute.Integer;
+    skill: Attribute.Component<'share.skill', true>;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     publishedAt: Attribute.DateTime;
@@ -854,6 +857,8 @@ export interface PluginUsersPermissionsUser extends Schema.CollectionType {
     face: Attribute.JSON;
     faceImage: Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
     Task: Attribute.Component<'share.task-details', true>;
+    tokenExpo: Attribute.String;
+    skill: Attribute.Component<'share.skill', true>;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     createdBy: Attribute.Relation<

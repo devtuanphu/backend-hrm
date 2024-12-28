@@ -3,7 +3,6 @@ const user = require("./content-types/user");
 import { forgotPassWord } from "../../template/forgotPassword";
 import { sendEmail } from "../../services/email";
 module.exports = (plugin) => {
-  plugin.contentTypes.user = user;
   plugin.routes["content-api"].routes.push(
     {
       method: "POST",
@@ -54,6 +53,15 @@ module.exports = (plugin) => {
       method: "PUT",
       path: "/update-progress",
       handler: "user.updateProgress",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "POST",
+      path: "/update-token",
+      handler: "user.updateExpoPushToken",
       config: {
         policies: [],
         middlewares: [],
@@ -301,5 +309,38 @@ module.exports = (plugin) => {
     }
   };
 
+  plugin.controllers.user.updateExpoPushToken = async (ctx) => {
+    const { userId, tokenExpo } = ctx.request.body;
+
+    if (!userId || !tokenExpo) {
+      return ctx.badRequest("userId và ExpoPushToken là bắt buộc!");
+    }
+
+    try {
+      // Kiểm tra xem user có tồn tại không
+      const user = await strapi
+        .query("plugin::users-permissions.user")
+        .findOne({
+          where: { id: userId },
+        });
+
+      if (!user) {
+        return ctx.notFound("Người dùng không tồn tại!");
+      }
+
+      // Cập nhật ExpoPushToken cho người dùng
+      await strapi.query("plugin::users-permissions.user").update({
+        where: { id: userId },
+        data: { tokenExpo },
+      });
+
+      return ctx.send({
+        message: "ExpoPushToken đã được cập nhật thành công!",
+      });
+    } catch (error) {
+      console.error("Lỗi khi cập nhật ExpoPushToken:", error);
+      return ctx.internalServerError("Không thể cập nhật ExpoPushToken!");
+    }
+  };
   return plugin;
 };

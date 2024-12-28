@@ -76,8 +76,19 @@
       "repeatable": true,
       "component": "share.check-in"
     },
-    "ip": {
+    "latitude": {
       "type": "string"
+    },
+    "longitude": {
+      "type": "string"
+    },
+    "space": {
+      "type": "integer"
+    },
+    "skill": {
+      "type": "component",
+      "repeatable": true,
+      "component": "share.skill"
     }
   }
 }
