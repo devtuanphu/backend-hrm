@@ -16,6 +16,7 @@
     "@strapi/plugin-users-permissions": "4.25.11",
     "@strapi/strapi": "4.25.11",
     "dayjs": "^1.11.13",
+    "expo-server-sdk": "^3.13.0",
     "jimp": "^1.6.0",
     "jsqr": "^1.4.0",
     "mysql": "2.18.1",

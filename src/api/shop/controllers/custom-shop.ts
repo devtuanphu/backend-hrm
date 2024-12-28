@@ -1,5 +1,6 @@
 import { factories } from "@strapi/strapi";
 import dayjs from "dayjs";
+import customNotificationService from "../../notification/services/customNotification";
 
 const haversineDistance = (lat1, lon1, lat2, lon2) => {
   const toRad = (value) => (value * Math.PI) / 180;
@@ -32,23 +33,21 @@ export default factories.createCoreController(
 
         // Lấy thông tin shop hiện tại
         const shop = await strapi.entityService.findOne("api::shop.shop", id, {
-          populate: { checkIn: true },
+          populate: { checkIn: true, owner: true }, // Đảm bảo lấy thông tin chủ shop
         });
 
         if (!shop) {
           return ctx.notFound("Shop not found");
         }
 
-        // Lấy tọa độ của shop và khoảng cách sai số (space)
         const shopLatitude = parseFloat(shop.latitude);
         const shopLongitude = parseFloat(shop.longitude);
-        const space = shop.space; // Đảm bảo space là số
+        const space = shop.space; // Đảm bảo khoảng cách sai số là số hợp lệ
 
-        // Lấy tọa độ check-in
         const checkInLatitude = parseFloat(checkIn.latitude);
         const checkInLongitude = parseFloat(checkIn.longitude);
 
-        // Tính khoảng cách giữa hai tọa độ
+        // Tính khoảng cách giữa tọa độ
         const distance = haversineDistance(
           shopLatitude,
           shopLongitude,
@@ -56,10 +55,10 @@ export default factories.createCoreController(
           checkInLongitude
         );
 
-        // Cập nhật isLocation dựa trên khoảng cách
+        // Xác định isLocation dựa trên khoảng cách
         const isLocation = distance <= space;
 
-        // Cập nhật check-in với thông tin isLocation và distance
+        // Cập nhật thông tin check-in với isLocation và distance
         const updatedCheckIn = shop.checkIn
           ? [
               ...shop.checkIn,
@@ -67,7 +66,7 @@ export default factories.createCoreController(
             ]
           : [{ ...checkIn, isLocation, distance: distance.toFixed(2) }];
 
-        // Cập nhật lại thông tin của shop
+        // Cập nhật thông tin shop
         const updatedShop = await strapi.entityService.update(
           "api::shop.shop",
           id,
@@ -75,6 +74,48 @@ export default factories.createCoreController(
             data: { checkIn: updatedCheckIn },
           }
         );
+
+        // Gửi thông báo
+        const userId = checkIn.userId; // ID của người check-in
+        const ownerId = shop.owner?.id; // ID của chủ shop
+
+        if (isLocation) {
+          // Trường hợp đúng vị trí: Gửi thông báo cho người check-in
+          await customNotificationService.sendNotification(
+            [userId],
+            "Check-in thành công",
+            `Bạn đã check-in thành công tại cửa hàng ${shop.name}.`,
+            { shopId: shop.id, distance }
+          );
+        } else {
+          // Trường hợp sai vị trí:
+          // Gửi thông báo cho người check-in
+          await customNotificationService.sendNotification(
+            [userId],
+            "Check-in không thành công",
+            `Check-in của bạn tại cửa hàng ${shop.name} không hợp lệ.`,
+            { shopId: shop.id, distance }
+          );
+
+          // Gửi thông báo cho chủ shop
+          if (ownerId) {
+            // Lấy thông tin người dùng check-in từ cơ sở dữ liệu
+            const user = await strapi.entityService.findOne(
+              "plugin::users-permissions.user",
+              userId
+            );
+
+            const userName = user?.name || "Nhân viên không xác định";
+
+            // Gửi thông báo cho chủ quán với thông tin chi tiết về người check-in sai vị trí
+            await customNotificationService.sendNotification(
+              [ownerId.toString()],
+              "Cảnh báo check-in sai vị trí",
+              `${userName} đã check-in sai vị trí tại cửa hàng ${shop.name}.`,
+              { shopId: shop.id, userId, distance }
+            );
+          }
+        }
 
         return ctx.send(updatedShop); // Trả về kết quả
       } catch (err) {
