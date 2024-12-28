@@ -65,22 +65,20 @@ const customNotificationService = {
         }
       }
 
-      // Lưu thông báo vào cơ sở dữ liệu
-      for (const user of validUsers) {
-        try {
-          await strapi.entityService.create("api::notification.notification", {
-            data: {
-              user: user.id,
-              title,
-              message,
-              data: JSON.stringify(data),
-              read: false,
-              publishedAt: new Date(),
-            },
-          });
-        } catch (error) {
-          strapi.log.error(`Lỗi khi lưu thông báo cho user ${user.id}:`, error);
-        }
+      // Lưu thông báo vào cơ sở dữ liệu với danh sách người dùng liên quan
+      try {
+        await strapi.entityService.create("api::notification.notification", {
+          data: {
+            users: users.map((user) => user.id), // Lưu danh sách user IDs
+            title,
+            message,
+            data: JSON.stringify(data),
+            is_read: false,
+            publishedAt: new Date(),
+          },
+        });
+      } catch (error) {
+        strapi.log.error("Lỗi khi lưu thông báo vào cơ sở dữ liệu:", error);
       }
 
       return { success: true, tickets };
