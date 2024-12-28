@@ -74,7 +74,7 @@ export default factories.createCoreController(
         );
 
         // Gửi thông báo
-        const userId = checkIn.userId; // Người check-in
+        const userId = checkIn.userId;
         const ownerId = shop.owner?.id; // Chủ shop
 
         if (isLocation) {
