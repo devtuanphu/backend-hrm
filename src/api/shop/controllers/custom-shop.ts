@@ -93,6 +93,8 @@ export default factories.createCoreController(
 
           // Gửi cảnh báo cho chủ cửa hàng
           if (ownerId) {
+            console.log("ownerId", ownerId);
+
             const user = await strapi.entityService.findOne(
               "plugin::users-permissions.user",
               userId
