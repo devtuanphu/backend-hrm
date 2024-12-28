@@ -2,35 +2,49 @@ import { Expo } from "expo-server-sdk";
 
 const expo = new Expo();
 
+interface User {
+  id: string;
+  tokenExpo?: string; // tokenExpo có thể không tồn tại
+}
+
 const customNotificationService = {
   async sendNotification(
     userIds: string[],
     title: string,
     message: string,
-    data = {}
-  ) {
+    data: Record<string, any> = {}
+  ): Promise<{ success: boolean; error?: string; tickets?: any[] }> {
     try {
-      // Lấy danh sách tokenExpo của người dùng từ cơ sở dữ liệu
-      const users = await strapi.entityService.findMany(
+      if (!Array.isArray(userIds) || userIds.length === 0) {
+        strapi.log.warn("Danh sách userIds trống hoặc không hợp lệ.");
+        return { success: false, error: "Danh sách userIds không hợp lệ." };
+      }
+
+      // Ép kiểu trả về của findMany
+      const users = (await strapi.entityService.findMany(
         "plugin::users-permissions.user",
         {
           filters: { id: { $in: userIds } },
-          fields: ["tokenExpo"],
+          fields: ["id", "tokenExpo"], // Lấy id và tokenExpo
         }
-      );
+      )) as User[];
 
-      const pushTokens = users
-        .map((user) => user.tokenExpo)
-        .filter((token) => Expo.isExpoPushToken(token));
-
-      if (pushTokens.length === 0) {
-        strapi.log.warn("Không có ExpoPushToken hợp lệ để gửi thông báo.");
-        return;
+      if (!users || users.length === 0) {
+        strapi.log.warn("Không tìm thấy người dùng hợp lệ.");
+        return { success: false, error: "Không tìm thấy người dùng hợp lệ." };
       }
 
-      // Tạo danh sách thông báo
-      const messages = pushTokens.map((token) => ({
-        to: token,
+      const validUsers = users.filter(
+        (user) => user.tokenExpo && Expo.isExpoPushToken(user.tokenExpo)
+      );
+
+      if (validUsers.length === 0) {
+        strapi.log.warn("Không có ExpoPushToken hợp lệ để gửi thông báo.");
+        return { success: false, error: "Không có ExpoPushToken hợp lệ." };
+      }
+
+      const messages = validUsers.map((user) => ({
+        to: user.tokenExpo as string,
         sound: "default",
         title: title,
         body: message,
@@ -38,9 +52,8 @@ const customNotificationService = {
         ttl: 86400,
       }));
 
-      // Gửi thông báo qua Expo
       const chunks = expo.chunkPushNotifications(messages);
-      const tickets = [];
+      const tickets: any[] = [];
       for (const chunk of chunks) {
         try {
           const ticketChunk = await expo.sendPushNotificationsAsync(chunk);
@@ -50,16 +63,19 @@ const customNotificationService = {
         }
       }
 
-      // Lưu thông báo vào cơ sở dữ liệu
-      for (const userId of userIds) {
-        await strapi.entityService.create("api::notification.notification", {
-          data: {
-            user: userId,
-            title,
-            message,
-            data,
-          },
-        });
+      for (const user of validUsers) {
+        try {
+          await strapi.entityService.create("api::notification.notification", {
+            data: {
+              user: user.id,
+              title,
+              message,
+              data: JSON.stringify(data),
+            },
+          });
+        } catch (error) {
+          strapi.log.error(`Lỗi khi lưu thông báo cho user ${user.id}:`, error);
+        }
       }
 
       return { success: true, tickets };
