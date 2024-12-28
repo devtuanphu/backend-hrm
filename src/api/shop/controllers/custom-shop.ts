@@ -77,45 +77,82 @@ export default factories.createCoreController(
         const userId = checkIn.userId;
         const ownerId = shop.owner?.id; // Chủ shop
 
-        // Danh sách users sẽ được lưu vào notification
-        const notificationUsers = isLocation
-          ? [userId]
-          : [userId, ownerId].filter(Boolean);
+        // Tạo thông báo cho từng trường hợp
+        if (isLocation) {
+          // Trường hợp đúng vị trí
+          const notificationData = {
+            title: "Check-in thành công",
+            message: `Bạn đã check-in thành công tại cửa hàng ${shop.name}.`,
+            data: { shopId: shop.id, distance },
+            read: false,
+            publishedAt: new Date(),
+            users: [userId],
+          };
 
-        // Tạo thông báo và gắn liên kết với nhiều user
-        const notificationData = {
-          title: isLocation
-            ? "Check-in thành công"
-            : "Cảnh báo check-in sai vị trí",
-          message: isLocation
-            ? `Bạn đã check-in thành công tại cửa hàng ${shop.name}.`
-            : `Người dùng đã check-in sai vị trí tại cửa hàng ${shop.name}.`,
-          data: { shopId: shop.id, distance },
-          read: false,
-          publishedAt: new Date(),
-          users: notificationUsers,
-        };
+          // Lưu thông báo cho người check-in
+          await strapi.entityService.create("api::notification.notification", {
+            data: notificationData,
+          });
 
-        // Lưu thông báo
-        await strapi.entityService.create("api::notification.notification", {
-          data: notificationData,
-        });
-
-        // Gửi thông báo tới từng user
-        for (const user of notificationUsers) {
-          const targetUser = await strapi.entityService.findOne(
-            "plugin::users-permissions.user",
-            user
+          // Gửi thông báo cho người check-in
+          await customNotificationService.sendNotification(
+            [userId],
+            notificationData.title,
+            notificationData.message,
+            notificationData.data
           );
-          if (
-            targetUser?.tokenExpo &&
-            Expo.isExpoPushToken(targetUser.tokenExpo)
-          ) {
+        } else {
+          // Trường hợp sai vị trí
+          const checkInUserNotification = {
+            title: "Check-in không thành công",
+            message: `Bạn đã check-in sai vị trí. Vui lòng đến khu vực cửa hàng ${shop.name} để thực hiện check-in.`,
+            data: { shopId: shop.id, distance },
+            read: false,
+            publishedAt: new Date(),
+            users: [userId],
+          };
+
+          const ownerNotification = {
+            title: "Cảnh báo check-in sai vị trí",
+            message: `Nhân viên ${
+              checkIn.name || "không rõ"
+            } đã check-in sai vị trí tại cửa hàng ${shop.name}.`,
+            data: { shopId: shop.id, distance },
+            read: false,
+            publishedAt: new Date(),
+            users: [ownerId],
+          };
+
+          // Lưu thông báo cho người check-in
+          await strapi.entityService.create("api::notification.notification", {
+            data: checkInUserNotification,
+          });
+
+          // Lưu thông báo cho chủ shop (nếu có)
+          if (ownerId) {
+            await strapi.entityService.create(
+              "api::notification.notification",
+              {
+                data: ownerNotification,
+              }
+            );
+          }
+
+          // Gửi thông báo cho người check-in
+          await customNotificationService.sendNotification(
+            [userId],
+            checkInUserNotification.title,
+            checkInUserNotification.message,
+            checkInUserNotification.data
+          );
+
+          // Gửi thông báo cho chủ shop (nếu có)
+          if (ownerId) {
             await customNotificationService.sendNotification(
-              notificationUsers,
-              notificationData.title,
-              notificationData.message,
-              notificationData.data
+              [ownerId.toString()],
+              ownerNotification.title,
+              ownerNotification.message,
+              ownerNotification.data
             );
           }
         }
