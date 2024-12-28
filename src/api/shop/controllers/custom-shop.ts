@@ -24,16 +24,16 @@ export default factories.createCoreController(
   ({ strapi }) => ({
     async addCheckIn(ctx) {
       try {
-        const { id } = ctx.params; // Lấy ID của shop từ route
-        const { checkIn } = ctx.request.body; // Dữ liệu check-in được gửi lên
+        const { id } = ctx.params; // ID của shop
+        const { checkIn } = ctx.request.body; // Dữ liệu check-in từ body
 
         if (!checkIn) {
           return ctx.badRequest("Missing checkIn data");
         }
 
-        // Lấy thông tin shop hiện tại
+        // Lấy thông tin shop
         const shop = await strapi.entityService.findOne("api::shop.shop", id, {
-          populate: { checkIn: true, owner: true }, // Đảm bảo lấy thông tin chủ shop
+          populate: { checkIn: true, owner: true },
         });
 
         if (!shop) {
@@ -42,12 +42,12 @@ export default factories.createCoreController(
 
         const shopLatitude = parseFloat(shop.latitude);
         const shopLongitude = parseFloat(shop.longitude);
-        const space = shop.space; // Đảm bảo khoảng cách sai số là số hợp lệ
+        const space = shop.space || 100; // Khoảng cách cho phép, mặc định 100m
 
         const checkInLatitude = parseFloat(checkIn.latitude);
         const checkInLongitude = parseFloat(checkIn.longitude);
 
-        // Tính khoảng cách giữa tọa độ
+        // Tính khoảng cách
         const distance = haversineDistance(
           shopLatitude,
           shopLongitude,
@@ -55,10 +55,9 @@ export default factories.createCoreController(
           checkInLongitude
         );
 
-        // Xác định isLocation dựa trên khoảng cách
         const isLocation = distance <= space;
 
-        // Cập nhật thông tin check-in với isLocation và distance
+        // Cập nhật dữ liệu check-in
         const updatedCheckIn = shop.checkIn
           ? [
               ...shop.checkIn,
@@ -66,7 +65,6 @@ export default factories.createCoreController(
             ]
           : [{ ...checkIn, isLocation, distance: distance.toFixed(2) }];
 
-        // Cập nhật thông tin shop
         const updatedShop = await strapi.entityService.update(
           "api::shop.shop",
           id,
@@ -76,11 +74,10 @@ export default factories.createCoreController(
         );
 
         // Gửi thông báo
-        const userId = checkIn.userId; // ID của người check-in
-        const ownerId = shop.owner?.id; // ID của chủ shop
+        const userId = checkIn.userId; // Người check-in
+        const ownerId = shop.owner?.id; // Chủ shop
 
         if (isLocation) {
-          // Trường hợp đúng vị trí: Gửi thông báo cho người check-in
           await customNotificationService.sendNotification(
             [userId],
             "Check-in thành công",
@@ -88,8 +85,6 @@ export default factories.createCoreController(
             { shopId: shop.id, distance }
           );
         } else {
-          // Trường hợp sai vị trí:
-          // Gửi thông báo cho người check-in
           await customNotificationService.sendNotification(
             [userId],
             "Check-in không thành công",
@@ -97,17 +92,13 @@ export default factories.createCoreController(
             { shopId: shop.id, distance }
           );
 
-          // Gửi thông báo cho chủ shop
           if (ownerId) {
-            // Lấy thông tin người dùng check-in từ cơ sở dữ liệu
             const user = await strapi.entityService.findOne(
               "plugin::users-permissions.user",
               userId
             );
 
             const userName = user?.name || "Nhân viên không xác định";
-
-            // Gửi thông báo cho chủ quán với thông tin chi tiết về người check-in sai vị trí
             await customNotificationService.sendNotification(
               [ownerId.toString()],
               "Cảnh báo check-in sai vị trí",
@@ -117,7 +108,7 @@ export default factories.createCoreController(
           }
         }
 
-        return ctx.send(updatedShop); // Trả về kết quả
+        return ctx.send(updatedShop); // Trả về kết quả cập nhật
       } catch (err) {
         strapi.log.error(err);
         return ctx.internalServerError("Something went wrong");

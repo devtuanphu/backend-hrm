@@ -20,12 +20,12 @@ const customNotificationService = {
         return { success: false, error: "Danh sách userIds không hợp lệ." };
       }
 
-      // Ép kiểu trả về của findMany
-      const users = (await strapi.entityService.findMany(
+      // Lấy thông tin user từ cơ sở dữ liệu
+      const users: User[] = (await strapi.entityService.findMany(
         "plugin::users-permissions.user",
         {
           filters: { id: { $in: userIds } },
-          fields: ["id", "tokenExpo"], // Lấy id và tokenExpo
+          fields: ["id", "tokenExpo"],
         }
       )) as User[];
 
@@ -34,6 +34,7 @@ const customNotificationService = {
         return { success: false, error: "Không tìm thấy người dùng hợp lệ." };
       }
 
+      // Lọc những user có ExpoPushToken hợp lệ
       const validUsers = users.filter(
         (user) => user.tokenExpo && Expo.isExpoPushToken(user.tokenExpo)
       );
@@ -43,13 +44,14 @@ const customNotificationService = {
         return { success: false, error: "Không có ExpoPushToken hợp lệ." };
       }
 
+      // Chuẩn bị danh sách thông báo
       const messages = validUsers.map((user) => ({
         to: user.tokenExpo as string,
         sound: "default",
-        title: title,
+        title,
         body: message,
         data,
-        ttl: 86400,
+        ttl: 86400, // Thời gian sống của thông báo
       }));
 
       const chunks = expo.chunkPushNotifications(messages);
@@ -63,6 +65,7 @@ const customNotificationService = {
         }
       }
 
+      // Lưu thông báo vào cơ sở dữ liệu
       for (const user of validUsers) {
         try {
           await strapi.entityService.create("api::notification.notification", {
@@ -71,6 +74,8 @@ const customNotificationService = {
               title,
               message,
               data: JSON.stringify(data),
+              read: false,
+              publishedAt: new Date(),
             },
           });
         } catch (error) {

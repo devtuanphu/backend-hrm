@@ -377,9 +377,9 @@ export interface ApiNotificationNotification extends Schema.CollectionType {
     title: Attribute.String;
     message: Attribute.Text;
     is_read: Attribute.Boolean & Attribute.DefaultTo<false>;
-    user: Attribute.Relation<
+    users: Attribute.Relation<
       'api::notification.notification',
-      'oneToOne',
+      'oneToMany',
       'plugin::users-permissions.user'
     >;
     data: Attribute.JSON;
