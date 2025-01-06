@@ -362,123 +362,6 @@ export interface AdminTransferTokenPermission extends Schema.CollectionType {
   };
 }
 
-export interface ApiNotificationNotification extends Schema.CollectionType {
-  collectionName: 'notifications';
-  info: {
-    singularName: 'notification';
-    pluralName: 'notifications';
-    displayName: 'Notification';
-    description: '';
-  };
-  options: {
-    draftAndPublish: true;
-  };
-  attributes: {
-    title: Attribute.String;
-    message: Attribute.Text;
-    is_read: Attribute.Boolean & Attribute.DefaultTo<false>;
-    users: Attribute.Relation<
-      'api::notification.notification',
-      'oneToMany',
-      'plugin::users-permissions.user'
-    >;
-    data: Attribute.JSON;
-    createdAt: Attribute.DateTime;
-    updatedAt: Attribute.DateTime;
-    publishedAt: Attribute.DateTime;
-    createdBy: Attribute.Relation<
-      'api::notification.notification',
-      'oneToOne',
-      'admin::user'
-    > &
-      Attribute.Private;
-    updatedBy: Attribute.Relation<
-      'api::notification.notification',
-      'oneToOne',
-      'admin::user'
-    > &
-      Attribute.Private;
-  };
-}
-
-export interface ApiPositionPosition extends Schema.CollectionType {
-  collectionName: 'positions';
-  info: {
-    singularName: 'position';
-    pluralName: 'positions';
-    displayName: 'Position';
-    description: '';
-  };
-  options: {
-    draftAndPublish: true;
-  };
-  attributes: {
-    name: Attribute.String;
-    description: Attribute.Text;
-    shop: Attribute.Relation<
-      'api::position.position',
-      'oneToOne',
-      'api::shop.shop'
-    >;
-    createdAt: Attribute.DateTime;
-    updatedAt: Attribute.DateTime;
-    publishedAt: Attribute.DateTime;
-    createdBy: Attribute.Relation<
-      'api::position.position',
-      'oneToOne',
-      'admin::user'
-    > &
-      Attribute.Private;
-    updatedBy: Attribute.Relation<
-      'api::position.position',
-      'oneToOne',
-      'admin::user'
-    > &
-      Attribute.Private;
-  };
-}
-
-export interface ApiShopShop extends Schema.CollectionType {
-  collectionName: 'shops';
-  info: {
-    singularName: 'shop';
-    pluralName: 'shops';
-    displayName: 'Shop';
-    description: '';
-  };
-  options: {
-    draftAndPublish: true;
-  };
-  attributes: {
-    name: Attribute.String;
-    location: Attribute.Text;
-    owner: Attribute.Relation<
-      'api::shop.shop',
-      'oneToOne',
-      'plugin::users-permissions.user'
-    >;
-    qrCode: Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
-    isActive: Attribute.Boolean & Attribute.DefaultTo<true>;
-    employeeCount: Attribute.Integer;
-    totalFee: Attribute.Decimal;
-    cccdBefore: Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
-    cccdAfter: Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
-    referredBy: Attribute.String;
-    checkIn: Attribute.Component<'share.check-in', true>;
-    latitude: Attribute.String;
-    longitude: Attribute.String;
-    space: Attribute.Integer;
-    skill: Attribute.Component<'share.skill', true>;
-    createdAt: Attribute.DateTime;
-    updatedAt: Attribute.DateTime;
-    publishedAt: Attribute.DateTime;
-    createdBy: Attribute.Relation<'api::shop.shop', 'oneToOne', 'admin::user'> &
-      Attribute.Private;
-    updatedBy: Attribute.Relation<'api::shop.shop', 'oneToOne', 'admin::user'> &
-      Attribute.Private;
-  };
-}
-
 export interface PluginUploadFile extends Schema.CollectionType {
   collectionName: 'files';
   info: {
@@ -859,7 +742,13 @@ export interface PluginUsersPermissionsUser extends Schema.CollectionType {
     faceImage: Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
     Task: Attribute.Component<'share.task-details', true>;
     tokenExpo: Attribute.String;
-    skill: Attribute.Component<'share.skill', true>;
+    skills: Attribute.Relation<
+      'plugin::users-permissions.user',
+      'oneToMany',
+      'api::skill.skill'
+    >;
+    rate: Attribute.Decimal;
+    wage: Attribute.Component<'share.rate-with-month', true>;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     createdBy: Attribute.Relation<
@@ -924,6 +813,209 @@ export interface PluginI18NLocale extends Schema.CollectionType {
   };
 }
 
+export interface ApiNotificationNotification extends Schema.CollectionType {
+  collectionName: 'notifications';
+  info: {
+    singularName: 'notification';
+    pluralName: 'notifications';
+    displayName: 'Notification';
+    description: '';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    title: Attribute.String;
+    message: Attribute.Text;
+    is_read: Attribute.Boolean & Attribute.DefaultTo<false>;
+    users: Attribute.Relation<
+      'api::notification.notification',
+      'oneToMany',
+      'plugin::users-permissions.user'
+    >;
+    data: Attribute.JSON;
+    createdAt: Attribute.DateTime;
+    updatedAt: Attribute.DateTime;
+    publishedAt: Attribute.DateTime;
+    createdBy: Attribute.Relation<
+      'api::notification.notification',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+    updatedBy: Attribute.Relation<
+      'api::notification.notification',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+  };
+}
+
+export interface ApiPositionPosition extends Schema.CollectionType {
+  collectionName: 'positions';
+  info: {
+    singularName: 'position';
+    pluralName: 'positions';
+    displayName: 'Position';
+    description: '';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    name: Attribute.String;
+    description: Attribute.Text;
+    shop: Attribute.Relation<
+      'api::position.position',
+      'oneToOne',
+      'api::shop.shop'
+    >;
+    createdAt: Attribute.DateTime;
+    updatedAt: Attribute.DateTime;
+    publishedAt: Attribute.DateTime;
+    createdBy: Attribute.Relation<
+      'api::position.position',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+    updatedBy: Attribute.Relation<
+      'api::position.position',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+  };
+}
+
+export interface ApiShiftShift extends Schema.CollectionType {
+  collectionName: 'shifts';
+  info: {
+    singularName: 'shift';
+    pluralName: 'shifts';
+    displayName: 'Shift';
+    description: '';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    shop: Attribute.Relation<'api::shift.shift', 'manyToOne', 'api::shop.shop'>;
+    startTime: Attribute.Time;
+    endTime: Attribute.Time;
+    maxEmployees: Attribute.Integer;
+    skills: Attribute.Relation<
+      'api::shift.shift',
+      'oneToMany',
+      'api::skill.skill'
+    >;
+    name: Attribute.String;
+    employeeStatuses: Attribute.Component<'share.shift-employee-status', true>;
+    date: Attribute.Date;
+    createdAt: Attribute.DateTime;
+    updatedAt: Attribute.DateTime;
+    publishedAt: Attribute.DateTime;
+    createdBy: Attribute.Relation<
+      'api::shift.shift',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+    updatedBy: Attribute.Relation<
+      'api::shift.shift',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+  };
+}
+
+export interface ApiShopShop extends Schema.CollectionType {
+  collectionName: 'shops';
+  info: {
+    singularName: 'shop';
+    pluralName: 'shops';
+    displayName: 'Shop';
+    description: '';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    name: Attribute.String;
+    location: Attribute.Text;
+    owner: Attribute.Relation<
+      'api::shop.shop',
+      'oneToOne',
+      'plugin::users-permissions.user'
+    >;
+    qrCode: Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
+    isActive: Attribute.Boolean & Attribute.DefaultTo<true>;
+    employeeCount: Attribute.Integer;
+    totalFee: Attribute.Decimal;
+    cccdBefore: Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
+    cccdAfter: Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
+    referredBy: Attribute.String;
+    checkIn: Attribute.Component<'share.check-in', true>;
+    latitude: Attribute.String;
+    longitude: Attribute.String;
+    space: Attribute.Integer;
+    skills: Attribute.Relation<
+      'api::shop.shop',
+      'oneToMany',
+      'api::skill.skill'
+    >;
+    shifts: Attribute.Relation<
+      'api::shop.shop',
+      'oneToMany',
+      'api::shift.shift'
+    >;
+    configShift: Attribute.Component<'share.config'>;
+    shiftDaily: Attribute.Component<'share.shift', true>;
+    createdAt: Attribute.DateTime;
+    updatedAt: Attribute.DateTime;
+    publishedAt: Attribute.DateTime;
+    createdBy: Attribute.Relation<'api::shop.shop', 'oneToOne', 'admin::user'> &
+      Attribute.Private;
+    updatedBy: Attribute.Relation<'api::shop.shop', 'oneToOne', 'admin::user'> &
+      Attribute.Private;
+  };
+}
+
+export interface ApiSkillSkill extends Schema.CollectionType {
+  collectionName: 'skills';
+  info: {
+    singularName: 'skill';
+    pluralName: 'skills';
+    displayName: 'Skill';
+    description: '';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    name: Attribute.String;
+    description: Attribute.Text;
+    shop: Attribute.Relation<'api::skill.skill', 'manyToOne', 'api::shop.shop'>;
+    createdAt: Attribute.DateTime;
+    updatedAt: Attribute.DateTime;
+    publishedAt: Attribute.DateTime;
+    createdBy: Attribute.Relation<
+      'api::skill.skill',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+    updatedBy: Attribute.Relation<
+      'api::skill.skill',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+  };
+}
+
 declare module '@strapi/types' {
   export module Shared {
     export interface ContentTypes {
@@ -934,9 +1026,6 @@ declare module '@strapi/types' {
       'admin::api-token-permission': AdminApiTokenPermission;
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
-      'api::notification.notification': ApiNotificationNotification;
-      'api::position.position': ApiPositionPosition;
-      'api::shop.shop': ApiShopShop;
       'plugin::upload.file': PluginUploadFile;
       'plugin::upload.folder': PluginUploadFolder;
       'plugin::content-releases.release': PluginContentReleasesRelease;
@@ -945,6 +1034,11 @@ declare module '@strapi/types' {
       'plugin::users-permissions.role': PluginUsersPermissionsRole;
       'plugin::users-permissions.user': PluginUsersPermissionsUser;
       'plugin::i18n.locale': PluginI18NLocale;
+      'api::notification.notification': ApiNotificationNotification;
+      'api::position.position': ApiPositionPosition;
+      'api::shift.shift': ApiShiftShift;
+      'api::shop.shop': ApiShopShop;
+      'api::skill.skill': ApiSkillSkill;
     }
   }
 }

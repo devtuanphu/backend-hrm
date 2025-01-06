@@ -1,0 +1,27 @@
+{
+  "collectionName": "components_share_shifts",
+  "info": {
+    "displayName": "shift",
+    "description": ""
+  },
+  "options": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "startTime": {
+      "type": "time"
+    },
+    "endTime": {
+      "type": "time"
+    },
+    "skills": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::skill.skill"
+    },
+    "maxEmployees": {
+      "type": "integer"
+    }
+  }
+}

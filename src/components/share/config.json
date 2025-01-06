@@ -1,0 +1,21 @@
+{
+  "collectionName": "components_share_configs",
+  "info": {
+    "displayName": "config",
+    "icon": "alien",
+    "description": ""
+  },
+  "options": {},
+  "attributes": {
+    "repeatCycle": {
+      "type": "enumeration",
+      "enum": [
+        "weekly",
+        "monthly"
+      ]
+    },
+    "remindDays": {
+      "type": "integer"
+    }
+  }
+}

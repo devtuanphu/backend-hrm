@@ -27,5 +27,86 @@ export default {
         middlewares: [],
       },
     },
+    {
+      method: "POST",
+      path: "/shops/:shopId/add-shift-daily",
+      handler: "custom-shop.addShiftDaily",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "GET",
+      path: "/shops/:shopId/shift-daily",
+      handler: "custom-shop.getShiftDaily",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "GET",
+      path: "/shops/:shopId/config-shift-cycle",
+      handler: "custom-shop.getConfigShiftCycle",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "PATCH",
+      path: "/shops/:shopId/config-shift-cycle",
+      handler: "custom-shop.updateConfigShiftCycle",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "GET",
+      path: "/shops/get-shifts/:shopId/:date",
+      handler: "custom-shop.getShiftShopByDate",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "POST",
+      path: "/shops/register-shift",
+      handler: "custom-shop.registerShiftByDate",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "PUT",
+      path: "/shops/update-status-employee-shift",
+      handler: "custom-shop.updateStatusEmployeeShift",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "POST",
+      path: "/shops/auto-assign-shifts",
+      handler: "custom-shop.autoAssignShift",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "GET",
+      path: "/shop/wage/:userId",
+      handler: "custom-shop.getUserWageByMonth",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
   ],
 };

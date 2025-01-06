@@ -24,6 +24,9 @@
     },
     "distance": {
       "type": "decimal"
+    },
+    "userId": {
+      "type": "integer"
     }
   }
 }

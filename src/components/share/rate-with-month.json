@@ -1,0 +1,19 @@
+{
+  "collectionName": "components_share_rate_with_months",
+  "info": {
+    "displayName": "rateWithMonth",
+    "icon": "alien"
+  },
+  "options": {},
+  "attributes": {
+    "wage": {
+      "type": "decimal"
+    },
+    "startDay": {
+      "type": "date"
+    },
+    "endDay": {
+      "type": "date"
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "collectionName": "components_share_shift_employee_statuses",
+  "info": {
+    "displayName": "ShiftEmployeeStatus"
+  },
+  "options": {},
+  "attributes": {
+    "user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": [
+        "Pending",
+        "Approved",
+        "Rejected"
+      ]
+    },
+    "registeredAt": {
+      "type": "datetime"
+    }
+  }
+}
