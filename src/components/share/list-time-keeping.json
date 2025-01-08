@@ -1,0 +1,15 @@
+{
+  "collectionName": "components_share_list_time_keepings",
+  "info": {
+    "displayName": "listTimeKeeping",
+    "icon": "alien"
+  },
+  "options": {},
+  "attributes": {
+    "timekeeper": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "plugin::users-permissions.user"
+    }
+  }
+}

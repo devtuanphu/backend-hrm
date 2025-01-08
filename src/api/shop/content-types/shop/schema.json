@@ -106,6 +106,24 @@
       "type": "component",
       "repeatable": true,
       "component": "share.shift"
+    },
+    "isClockIn": {
+      "type": "boolean",
+      "default": false
+    },
+    "request": {
+      "type": "component",
+      "repeatable": true,
+      "component": "share.request"
+    },
+    "typeCheckIn": {
+      "type": "enumeration",
+      "enum": [
+        "day",
+        "shift",
+        "hours"
+      ],
+      "default": "hours"
     }
   }
 }

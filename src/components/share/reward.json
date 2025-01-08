@@ -1,0 +1,27 @@
+{
+  "collectionName": "components_share_rewards",
+  "info": {
+    "displayName": "reward",
+    "icon": "alien",
+    "description": ""
+  },
+  "options": {},
+  "attributes": {
+    "reson": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "integer"
+    },
+    "date": {
+      "type": "date"
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": [
+        "reward",
+        "penalty"
+      ]
+    }
+  }
+}

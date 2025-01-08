@@ -1,0 +1,23 @@
+{
+  "collectionName": "components_share_detail_check_ins",
+  "info": {
+    "displayName": "detailCheckIn",
+    "icon": "alien",
+    "description": ""
+  },
+  "options": {},
+  "attributes": {
+    "type": {
+      "type": "enumeration",
+      "enum": [
+        "day",
+        "shift",
+        "hours"
+      ],
+      "default": "hours"
+    },
+    "description": {
+      "type": "text"
+    }
+  }
+}

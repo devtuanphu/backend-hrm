@@ -27,6 +27,12 @@
     },
     "userId": {
       "type": "integer"
+    },
+    "isTimekeeper": {
+      "type": "boolean"
+    },
+    "userIdTimeKeeper": {
+      "type": "integer"
     }
   }
 }

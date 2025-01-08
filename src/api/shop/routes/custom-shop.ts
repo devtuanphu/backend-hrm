@@ -108,5 +108,41 @@ export default {
         middlewares: [],
       },
     },
+    {
+      method: "POST",
+      path: "/shops/senNotificationToEmployee/:shopId",
+      handler: "custom-shop.sendNotificationReminderToEmployee",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "GET",
+      path: "/shops/top-tasks",
+      handler: "custom-shop.getListTopTask",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "PUT",
+      path: "/shops/reward-employee",
+      handler: "custom-shop.addReward",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "GET",
+      path: "/shops/:userId/rewards-history",
+      handler: "custom-shop.historyRewardByUserMonth",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
   ],
 };

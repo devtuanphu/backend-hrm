@@ -749,6 +749,8 @@ export interface PluginUsersPermissionsUser extends Schema.CollectionType {
     >;
     rate: Attribute.Decimal;
     wage: Attribute.Component<'share.rate-with-month', true>;
+    timekeeper: Attribute.Component<'share.list-time-keeping', true>;
+    reward: Attribute.Component<'share.reward', true>;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     createdBy: Attribute.Relation<
@@ -973,6 +975,10 @@ export interface ApiShopShop extends Schema.CollectionType {
     >;
     configShift: Attribute.Component<'share.config'>;
     shiftDaily: Attribute.Component<'share.shift', true>;
+    isClockIn: Attribute.Boolean & Attribute.DefaultTo<false>;
+    request: Attribute.Component<'share.request', true>;
+    typeCheckIn: Attribute.Enumeration<['day', 'shift', 'hours']> &
+      Attribute.DefaultTo<'hours'>;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     publishedAt: Attribute.DateTime;

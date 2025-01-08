@@ -132,6 +132,16 @@
       "type": "component",
       "repeatable": true,
       "component": "share.rate-with-month"
+    },
+    "timekeeper": {
+      "type": "component",
+      "repeatable": true,
+      "component": "share.list-time-keeping"
+    },
+    "reward": {
+      "type": "component",
+      "repeatable": true,
+      "component": "share.reward"
     }
   }
 }

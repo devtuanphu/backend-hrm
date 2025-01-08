@@ -46,100 +46,6 @@ const updateEmployeeStatus = async (
 export default factories.createCoreController(
   "api::shop.shop",
   ({ strapi }) => ({
-    // async addCheckIn(ctx) {
-    //   try {
-    //     const { id } = ctx.params; // ID của shop
-    //     const { checkIn } = ctx.request.body; // Dữ liệu check-in từ body
-
-    //     if (!checkIn) {
-    //       return ctx.badRequest("Missing checkIn data");
-    //     }
-
-    //     // Lấy thông tin shop
-    //     const shop = await strapi.entityService.findOne("api::shop.shop", id, {
-    //       populate: { checkIn: true, owner: true },
-    //     });
-
-    //     if (!shop) {
-    //       return ctx.notFound("Shop not found");
-    //     }
-
-    //     const shopLatitude = parseFloat(shop.latitude);
-    //     const shopLongitude = parseFloat(shop.longitude);
-    //     const space = shop.space || 100; // Khoảng cách cho phép, mặc định 100m
-
-    //     const checkInLatitude = parseFloat(checkIn.latitude);
-    //     const checkInLongitude = parseFloat(checkIn.longitude);
-
-    //     // Tính khoảng cách
-    //     const distance = haversineDistance(
-    //       shopLatitude,
-    //       shopLongitude,
-    //       checkInLatitude,
-    //       checkInLongitude
-    //     );
-
-    //     const isLocation = distance <= space;
-
-    //     // Cập nhật dữ liệu check-in
-    //     const updatedCheckIn = shop.checkIn
-    //       ? [
-    //           ...shop.checkIn,
-    //           { ...checkIn, isLocation, distance: distance.toFixed(2) },
-    //         ]
-    //       : [{ ...checkIn, isLocation, distance: distance.toFixed(2) }];
-
-    //     await strapi.entityService.update("api::shop.shop", id, {
-    //       data: { checkIn: updatedCheckIn },
-    //     });
-
-    //     const userId = checkIn.userId;
-    //     const ownerId = shop.owner?.id; // Chủ shop
-
-    //     // Thông báo cho từng trường hợp
-    //     if (isLocation) {
-    //       // Gửi thông báo thành công cho người check-in
-    //       await customNotificationService.sendNotification(
-    //         [userId],
-    //         "Check-in thành công",
-    //         `Bạn đã check-in thành công tại cửa hàng ${shop.name}.`,
-    //         { shopId: Number(shop.id), distance }
-    //       );
-    //     } else {
-    //       // Gửi thông báo lỗi cho người check-in
-    //       await customNotificationService.sendNotification(
-    //         [userId],
-    //         "Check-in không thành công",
-    //         `Bạn đã check-in sai vị trí. Vui lòng đến khu vực cửa hàng ${shop.name} để thực hiện check-in.`,
-    //         { shopId: Number(shop.id), distance }
-    //       );
-
-    //       // Gửi cảnh báo cho chủ cửa hàng
-    //       if (ownerId) {
-    //         console.log("ownerId", ownerId);
-
-    //         const user = await strapi.entityService.findOne(
-    //           "plugin::users-permissions.user",
-    //           userId
-    //         );
-    //         const userName = user?.name || "Nhân viên không xác định";
-
-    //         await customNotificationService.sendNotification(
-    //           [ownerId.toString()],
-    //           "Cảnh báo check-in sai vị trí",
-    //           `${userName} đã check-in sai vị trí tại cửa hàng ${shop.name}.`,
-    //           { shopId: Number(shop.id), userId, distance }
-    //         );
-    //       }
-    //     }
-
-    //     return ctx.send({ success: true });
-    //   } catch (err) {
-    //     strapi.log.error(err);
-    //     return ctx.internalServerError("Something went wrong");
-    //   }
-    // },
-
     async addCheckIn(ctx) {
       try {
         const { id } = ctx.params; // ID của shop
@@ -155,6 +61,11 @@ export default factories.createCoreController(
 
         if (!shop) {
           return ctx.notFound("Shop not found");
+        }
+        const { typeCheckIn } = shop;
+
+        if (!typeCheckIn) {
+          return ctx.badRequest("Cửa hàng chưa chọn hình thức chấm công.");
         }
 
         const shopLatitude = parseFloat(shop.latitude);
@@ -186,13 +97,159 @@ export default factories.createCoreController(
 
         let wageToAdd = 0;
 
-        if (isCheckOut) {
-          const lastCheckIn = todayCheckIns[todayCheckIns.length - 1];
-          const checkOutTime = new Date(checkIn.time);
-          const checkInTime = new Date(lastCheckIn.time);
-          const workedHours =
-            (checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60);
+        // if (isCheckOut) {
+        //   const lastCheckIn = todayCheckIns[todayCheckIns.length - 1];
+        //   const checkOutTime = new Date(checkIn.time);
+        //   const checkInTime = new Date(lastCheckIn.time);
+        //   const workedHours =
+        //     (checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60);
 
+        //   const user = await strapi.entityService.findOne(
+        //     "plugin::users-permissions.user",
+        //     checkIn.userId,
+        //     { populate: ["wage"] }
+        //   );
+
+        //   if (!user) {
+        //     return ctx.notFound("User not found");
+        //   }
+
+        //   const userRate = parseFloat(user.rate?.toString() || "0");
+        //   wageToAdd = workedHours * userRate;
+
+        //   const currentMonthStart = new Date(
+        //     today.getFullYear(),
+        //     today.getMonth(),
+        //     2
+        //   );
+        //   const currentMonthEnd = new Date(
+        //     today.getFullYear(),
+        //     today.getMonth() + 1,
+        //     1
+        //   );
+
+        //   const formattedCheckInTime = new Date(checkIn.time).getTime();
+
+        //   let wageEntry = user.wage.find((w) => {
+        //     const startDay = new Date(w.startDay).getTime();
+        //     const endDay = new Date(w.endDay).getTime();
+        //     return (
+        //       formattedCheckInTime >= startDay && formattedCheckInTime <= endDay
+        //     );
+        //   });
+
+        //   if (!wageEntry) {
+        //     // Tạo bản ghi wage mới nếu chưa tồn tại trong tháng này
+        //     wageEntry = {
+        //       id: user.wage.length + 1, // Assuming id is a sequential number
+        //       wage: wageToAdd,
+        //       startDay: currentMonthStart.toISOString(),
+        //       endDay: currentMonthEnd.toISOString(),
+        //     };
+        //     user.wage.push(wageEntry);
+        //   } else {
+        //     // Nếu đã có, cộng dồn wage
+        //     wageEntry.wage += wageToAdd;
+        //   }
+
+        //   await strapi.entityService.update(
+        //     "plugin::users-permissions.user",
+        //     user.id,
+        //     {
+        //       data: {
+        //         wage: user.wage.map((w) => ({
+        //           wage: w.wage,
+        //           startDay: w.startDay,
+        //           endDay: w.endDay,
+        //         })),
+        //       },
+        //     }
+        //   );
+
+        //   console.log(`Lương thêm: ${wageToAdd} cho userId: ${checkIn.userId}`);
+        // }
+        // **Trường hợp typeCheckIn là "hours"**
+        if (typeCheckIn === "hours") {
+          const isCheckOut = todayCheckIns.length % 2 !== 0;
+
+          if (isCheckOut) {
+            const lastCheckIn = todayCheckIns[todayCheckIns.length - 1];
+            const checkOutTime = new Date(checkIn.time);
+            const checkInTime = new Date(lastCheckIn.time);
+            const workedHours =
+              (checkOutTime.getTime() - checkInTime.getTime()) /
+              (1000 * 60 * 60);
+
+            const user = await strapi.entityService.findOne(
+              "plugin::users-permissions.user",
+              checkIn.userId,
+              { populate: ["wage"] }
+            );
+
+            if (!user) {
+              return ctx.notFound("User not found");
+            }
+
+            const userRate = parseFloat(user.rate?.toString() || "0");
+            wageToAdd = workedHours * userRate;
+
+            const currentMonthStart = new Date(
+              today.getFullYear(),
+              today.getMonth(),
+              2
+            );
+            const currentMonthEnd = new Date(
+              today.getFullYear(),
+              today.getMonth() + 1,
+              1
+            );
+
+            const formattedCheckInTime = new Date(checkIn.time).getTime();
+
+            let wageEntry = user.wage.find((w) => {
+              const startDay = new Date(w.startDay).getTime();
+              const endDay = new Date(w.endDay).getTime();
+              return (
+                formattedCheckInTime >= startDay &&
+                formattedCheckInTime <= endDay
+              );
+            });
+
+            if (!wageEntry) {
+              wageEntry = {
+                id: user.wage.length + 1,
+                wage: wageToAdd,
+                startDay: currentMonthStart.toISOString(),
+                endDay: currentMonthEnd.toISOString(),
+              };
+              user.wage.push(wageEntry);
+            } else {
+              wageEntry.wage += wageToAdd;
+            }
+
+            await strapi.entityService.update(
+              "plugin::users-permissions.user",
+              user.id,
+              {
+                data: {
+                  wage: user.wage.map((w) => ({
+                    wage: w.wage,
+                    startDay: w.startDay,
+                    endDay: w.endDay,
+                  })),
+                },
+              }
+            );
+
+            console.log(
+              `Lương thêm: ${wageToAdd} cho userId: ${checkIn.userId}`
+            );
+          }
+        }
+
+        // **Trường hợp typeCheckIn là "day" hoặc "shift"**
+        else if (typeCheckIn === "day" || typeCheckIn === "shift") {
+          console.log(`Chấm công theo ${typeCheckIn}`);
           const user = await strapi.entityService.findOne(
             "plugin::users-permissions.user",
             checkIn.userId,
@@ -204,7 +261,7 @@ export default factories.createCoreController(
           }
 
           const userRate = parseFloat(user.rate?.toString() || "0");
-          wageToAdd = workedHours * userRate;
+          wageToAdd = userRate; // Thêm thẳng vào lương, xem như 1 công
 
           const currentMonthStart = new Date(
             today.getFullYear(),
@@ -217,27 +274,21 @@ export default factories.createCoreController(
             1
           );
 
-          const formattedCheckInTime = new Date(checkIn.time).getTime();
-
           let wageEntry = user.wage.find((w) => {
             const startDay = new Date(w.startDay).getTime();
             const endDay = new Date(w.endDay).getTime();
-            return (
-              formattedCheckInTime >= startDay && formattedCheckInTime <= endDay
-            );
+            return today.getTime() >= startDay && today.getTime() <= endDay;
           });
 
           if (!wageEntry) {
-            // Tạo bản ghi wage mới nếu chưa tồn tại trong tháng này
             wageEntry = {
-              id: user.wage.length + 1, // Assuming id is a sequential number
+              id: user.wage.length + 1,
               wage: wageToAdd,
               startDay: currentMonthStart.toISOString(),
               endDay: currentMonthEnd.toISOString(),
             };
             user.wage.push(wageEntry);
           } else {
-            // Nếu đã có, cộng dồn wage
             wageEntry.wage += wageToAdd;
           }
 
@@ -255,7 +306,9 @@ export default factories.createCoreController(
             }
           );
 
-          console.log(`Lương thêm: ${wageToAdd} cho userId: ${checkIn.userId}`);
+          console.log(
+            `Lương cố định: ${wageToAdd} cho userId: ${checkIn.userId}`
+          );
         }
 
         const updatedCheckIn = shop.checkIn
@@ -741,178 +794,6 @@ export default factories.createCoreController(
         );
       }
     },
-
-    // async autoAssignShift(ctx) {
-    //   try {
-    //     const { shopId, startDate, endDate } = ctx.request.body;
-
-    //     if (!shopId || !startDate || !endDate) {
-    //       return ctx.badRequest(
-    //         "Vui lòng cung cấp đầy đủ shopId, startDate và endDate."
-    //       );
-    //     }
-
-    //     const employees = await strapi.entityService.findMany(
-    //       "plugin::users-permissions.user",
-    //       {
-    //         filters: { shop: { id: shopId } },
-    //         populate: ["skills"],
-    //       }
-    //     );
-    //     console.log("Danh sách nhân viên:", employees);
-
-    //     const shifts = await strapi.entityService.findMany("api::shift.shift", {
-    //       filters: {
-    //         shop: { id: shopId },
-    //         date: { $gte: new Date(startDate), $lte: new Date(endDate) },
-    //       },
-    //       populate: {
-    //         employeeStatuses: {
-    //           populate: {
-    //             user: {
-    //               populate: ["skills"], // Populate thêm "skills" của user trong employeeStatuses
-    //             },
-    //           },
-    //         },
-    //         skills: true,
-    //       },
-    //       sort: { date: "asc", startTime: "asc" },
-    //     });
-    //     for (const shift of shifts) {
-    //       console.log(
-    //         `Đang xử lý ca làm: ${shift.name} (${shift.startTime} - ${shift.endTime})`
-    //       );
-
-    //       const approvedEmployees = shift.employeeStatuses.filter(
-    //         (status) => status.status === "Approved"
-    //       );
-
-    //       if (approvedEmployees.length >= shift.maxEmployees) {
-    //         console.log(`Ca ${shift.name} đã đủ số lượng nhân viên`);
-    //         continue;
-    //       }
-
-    //       const requiredSkills = shift.skills.map((skill) => skill.id);
-
-    //       const pendingRegistrations = shift.employeeStatuses.filter(
-    //         (status) => status.status === "Pending"
-    //       );
-
-    //       // Duyệt qua các nhân viên có trạng thái "Pending"
-    //       for (const registration of pendingRegistrations) {
-    //         const employee = registration.user;
-    //         console.log(employee);
-
-    //         if (!employee || !Array.isArray(employee.skills)) {
-    //           console.log(
-    //             `Bỏ qua nhân viên không có thông tin kỹ năng: ${
-    //               employee?.username || "N/A"
-    //             }`
-    //           );
-    //           continue;
-    //         }
-
-    //         const employeeSkillIds = employee.skills.map((skill) => skill.id);
-    //         const matchedSkills = employeeSkillIds.filter((skillId) =>
-    //           requiredSkills.includes(skillId)
-    //         );
-
-    //         // Nếu nhân viên có ít nhất một kỹ năng khớp
-    //         if (matchedSkills.length > 0) {
-    //           console.log(
-    //             `Duyệt nhân viên ${employee.username} cho ca ${shift.name} (Số kỹ năng khớp: ${matchedSkills.length})`
-    //           );
-    //           await strapi.entityService.update("api::shift.shift", shift.id, {
-    //             data: {
-    //               employeeStatuses: [
-    //                 ...shift.employeeStatuses.filter(
-    //                   (es) => es.user?.id !== employee.id
-    //                 ),
-    //                 {
-    //                   user: employee.id,
-    //                   status: "Approved",
-    //                   registeredAt: new Date(),
-    //                 },
-    //               ],
-    //             },
-    //           });
-    //         } else {
-    //           console.log(
-    //             `Từ chối nhân viên ${employee.username} vì không đủ kỹ năng.`
-    //           );
-    //           await strapi.entityService.update("api::shift.shift", shift.id, {
-    //             data: {
-    //               employeeStatuses: [
-    //                 ...shift.employeeStatuses.filter(
-    //                   (es) => es.user?.id !== employee.id
-    //                 ),
-    //                 {
-    //                   user: employee.id,
-    //                   status: "Rejected",
-    //                   registeredAt: new Date(),
-    //                 },
-    //               ],
-    //             },
-    //           });
-
-    //           // Tìm nhân viên thay thế phù hợp (dựa trên số kỹ năng khớp nhiều nhất)
-    //           const replacementCandidates = employees
-    //             .filter(
-    //               (e) =>
-    //                 e.skills &&
-    //                 e.skills.length > 0 &&
-    //                 requiredSkills.some((skillId) =>
-    //                   e.skills.map((s) => s.id).includes(skillId)
-    //                 ) &&
-    //                 !shift.employeeStatuses.some((es) => es.user?.id === e.id)
-    //             )
-    //             .map((e) => ({
-    //               employee: e,
-    //               matchedSkillCount: e.skills.filter((s) =>
-    //                 requiredSkills.includes(s.id)
-    //               ).length,
-    //             }))
-    //             .sort((a, b) => b.matchedSkillCount - a.matchedSkillCount);
-
-    //           const replacement = replacementCandidates.length
-    //             ? replacementCandidates[0].employee
-    //             : null;
-
-    //           if (replacement) {
-    //             console.log(
-    //               `Thêm nhân viên thay thế ${replacement.username} vào ca ${shift.name}`
-    //             );
-    //             await strapi.entityService.update(
-    //               "api::shift.shift",
-    //               shift.id,
-    //               {
-    //                 data: {
-    //                   employeeStatuses: [
-    //                     ...shift.employeeStatuses,
-    //                     {
-    //                       user: replacement.id,
-    //                       status: "Approved",
-    //                       registeredAt: new Date(),
-    //                     },
-    //                   ],
-    //                 },
-    //               }
-    //             );
-    //           }
-    //         }
-    //       }
-    //     }
-
-    //     return ctx.send({
-    //       success: true,
-    //       message: "Xếp ca tự động thành công.",
-    //     });
-    //   } catch (error) {
-    //     console.error("Lỗi xếp ca tự động:", error);
-    //     return ctx.internalServerError("Có lỗi xảy ra khi xếp ca tự động.");
-    //   }
-    // },
-
     async autoAssignShift(ctx) {
       try {
         const { shopId, startDate, endDate } = ctx.request.body;
@@ -1117,6 +998,343 @@ export default factories.createCoreController(
       } catch (error) {
         strapi.log.error(error);
         return ctx.internalServerError("Something went wrong");
+      }
+    },
+    async sendNotificationReminderToEmployee(ctx) {
+      try {
+        const { shopId } = ctx.params; // ID của shop
+        const { name, detail, userId } = ctx.request.body; // Dữ liệu từ body
+        console.log(
+          "sendNotificationReminderToEmployee",
+          shopId,
+          name,
+          detail,
+          userId
+        );
+
+        if (!name || !detail || !userId) {
+          return ctx.badRequest(
+            "Thiếu dữ liệu cần thiết (name, detail, userId)"
+          );
+        }
+
+        // Tìm kiếm thông tin shop
+        const shop = await strapi.entityService.findOne(
+          "api::shop.shop",
+          shopId,
+          {
+            populate: { request: true },
+          }
+        );
+
+        if (!shop) {
+          return ctx.notFound("Không tìm thấy cửa hàng với ID được cung cấp.");
+        }
+
+        // Tìm kiếm thông tin nhân viên dựa vào userId
+        const user = await strapi.entityService.findOne(
+          "plugin::users-permissions.user",
+          userId,
+          { fields: ["name", "tokenExpo"] }
+        );
+
+        if (!user) {
+          return ctx.notFound("Không tìm thấy nhân viên với ID được cung cấp.");
+        }
+
+        if (!user.tokenExpo || !Expo.isExpoPushToken(user.tokenExpo)) {
+          return ctx.badRequest(
+            "Người dùng không có token Expo hợp lệ để nhận thông báo."
+          );
+        }
+
+        // Gửi thông báo bằng customNotificationService
+        const notificationData = {
+          shopId: shopId,
+          userId: userId,
+        };
+
+        const response = await customNotificationService.sendNotification(
+          [userId.toString()], // Danh sách userId (phải là chuỗi)
+          name, // Tiêu đề
+          detail, // Nội dung chi tiết
+          notificationData // Dữ liệu bổ sung
+        );
+
+        if (!response.success) {
+          return ctx.internalServerError("Lỗi khi gửi thông báo.");
+        }
+
+        await strapi.entityService.update("api::shop.shop", shopId, {
+          data: {
+            request: [
+              ...shop.request,
+              {
+                name: name,
+                detail: detail,
+                userId: Number(userId),
+              },
+            ],
+          },
+        });
+
+        return ctx.send({
+          success: true,
+          message: "Gửi thông báo và lưu yêu cầu thành công!",
+        });
+      } catch (error) {
+        strapi.log.error(
+          "Lỗi khi gửi thông báo nhắc nhở cho nhân viên:",
+          error
+        );
+        return ctx.internalServerError("Có lỗi xảy ra khi gửi thông báo.");
+      }
+    },
+    async getListTopTask(ctx) {
+      try {
+        const { shopId, month, year } = ctx.request.query; // Lấy shopId, tháng và năm từ query params
+
+        if (!shopId || !month || !year) {
+          return ctx.badRequest(
+            "Vui lòng cung cấp shopId, tháng và năm để lọc dữ liệu."
+          );
+        }
+
+        const startOfMonth = new Date(year, month - 1, 1);
+        const endOfMonth = new Date(year, month, 0, 23, 59, 59);
+
+        // Lấy danh sách nhân viên của shop kèm theo task
+        const users = await strapi.entityService.findMany(
+          "plugin::users-permissions.user",
+          {
+            populate: {
+              Task: true,
+            },
+            filters: {
+              shop: {
+                id: shopId, // Lọc theo shopId
+              },
+              Task: {
+                time_create: {
+                  $gte: startOfMonth.toISOString(),
+                  $lte: endOfMonth.toISOString(),
+                },
+              },
+            },
+          }
+        );
+
+        if (users.length === 0) {
+          return ctx.send({
+            success: false,
+            message:
+              "Không có nhân viên nào hoàn thành task trong tháng được chọn.",
+          });
+        }
+
+        // Tính tổng progress cho mỗi user
+        const userProgressData = users.map((user) => {
+          const totalProgress = user.Task.reduce(
+            (sum, task) => sum + (task.progess || 0),
+            0
+          );
+          return {
+            userId: user.id,
+            name: user.name,
+            email: user.email,
+            totalProgress,
+          };
+        });
+
+        // Sắp xếp danh sách user theo tổng progress giảm dần
+        const sortedUsers = userProgressData.sort(
+          (a, b) => b.totalProgress - a.totalProgress
+        );
+
+        // Lấy top 10 người hoàn thành task nhiều nhất
+        const top10Users = sortedUsers.slice(0, 10);
+        console.log("top10Users", top10Users);
+
+        return ctx.send({
+          success: true,
+          data: top10Users,
+        });
+      } catch (error) {
+        strapi.log.error(
+          "Lỗi khi lấy danh sách top 10 nhân viên hoàn thành task:",
+          error
+        );
+        return ctx.internalServerError(
+          "Có lỗi xảy ra khi lấy danh sách top 10 nhân viên."
+        );
+      }
+    },
+    async addReward(ctx) {
+      try {
+        const { label, userId, amount, reason } = ctx.request.body;
+
+        if (!label || !userId || amount === undefined || !reason) {
+          return ctx.badRequest(
+            "Thiếu dữ liệu cần thiết (label, userId, amount, reason)"
+          );
+        }
+
+        if (amount <= 0) {
+          return ctx.badRequest("Số tiền phải lớn hơn 0");
+        }
+
+        // Tìm thông tin user
+        const user = await strapi.entityService.findOne(
+          "plugin::users-permissions.user",
+          userId,
+          {
+            populate: ["wage", "reward"],
+          }
+        );
+
+        if (!user) {
+          return ctx.notFound("Không tìm thấy nhân viên với ID được cung cấp.");
+        }
+
+        const today = new Date();
+        const currentMonthStart = new Date(
+          today.getFullYear(),
+          today.getMonth(),
+          1
+        ); // Ngày đầu tháng
+        const currentMonthEnd = new Date(
+          today.getFullYear(),
+          today.getMonth() + 1,
+          0
+        ); // Ngày cuối tháng
+
+        const formattedStartDay = currentMonthStart.toISOString();
+        const formattedEndDay = currentMonthEnd.toISOString();
+
+        // Tìm bản ghi wage nằm trong tháng hiện tại
+        let wageEntry = user.wage.find((w) => {
+          const startDay = new Date(w.startDay).getTime();
+          const endDay = new Date(w.endDay).getTime();
+          return today.getTime() >= startDay && today.getTime() <= endDay;
+        });
+
+        if (!wageEntry) {
+          // Nếu không có bản ghi wage trong tháng, tạo mới
+          wageEntry = {
+            id: user.wage.length + 1,
+            wage: 0,
+            startDay: formattedStartDay,
+            endDay: formattedEndDay,
+          };
+          user.wage.push(wageEntry);
+        }
+
+        // Tính toán thưởng/phạt
+        if (label === "reward") {
+          wageEntry.wage += amount; // Cộng số tiền thưởng
+        } else if (label === "penalty") {
+          wageEntry.wage -= amount; // Trừ số tiền phạt
+          if (wageEntry.wage < 0) wageEntry.wage = 0; // Đảm bảo wage không âm
+        } else {
+          return ctx.badRequest(
+            "Label không hợp lệ (chỉ nhận 'reward' hoặc 'penalty')"
+          );
+        }
+
+        // Tạo bản ghi reward mới
+        const newReward = {
+          reson: reason,
+          amount: amount,
+          date: today.toISOString(),
+          type: label, // "reward" hoặc "penalty"
+        };
+
+        // Thêm bản ghi reward vào user
+        const updatedRewards = user.reward
+          ? [...user.reward, newReward]
+          : [newReward];
+
+        // Cập nhật user với thông tin mới
+        await strapi.entityService.update(
+          "plugin::users-permissions.user",
+          userId,
+          {
+            data: {
+              wage: user.wage.map((w) => ({
+                wage: w.wage,
+                startDay: w.startDay,
+                endDay: w.endDay,
+              })),
+              reward: updatedRewards,
+            },
+          }
+        );
+
+        return ctx.send({
+          success: true,
+          message: `Đã ${
+            label === "reward" ? "thưởng" : "phạt"
+          } thành công cho nhân viên.`,
+        });
+      } catch (error) {
+        strapi.log.error("Lỗi khi xử lý thưởng/phạt:", error);
+        return ctx.internalServerError("Có lỗi xảy ra khi xử lý thưởng/phạt.");
+      }
+    },
+    async historyRewardByUserMonth(ctx) {
+      try {
+        const { userId } = ctx.params; // Lấy userId từ URL params
+        const { month, year } = ctx.request.query; // Lấy tháng và năm từ query params
+        console.log("userId", userId, "month", month, "year", year);
+
+        if (!userId || !month || !year) {
+          return ctx.badRequest(
+            "Vui lòng cung cấp userId, tháng (month) và năm (year)."
+          );
+        }
+
+        const selectedMonth = parseInt(month, 10); // Chuyển thành số nguyên
+        const selectedYear = parseInt(year, 10); // Chuyển thành số nguyên
+
+        // Kiểm tra tính hợp lệ của tháng và năm
+        if (
+          isNaN(selectedMonth) ||
+          isNaN(selectedYear) ||
+          selectedMonth < 1 ||
+          selectedMonth > 12
+        ) {
+          return ctx.badRequest("Tháng hoặc năm không hợp lệ.");
+        }
+
+        // Tìm thông tin user và populate reward
+        const user = await strapi.entityService.findOne(
+          "plugin::users-permissions.user",
+          userId,
+          {
+            populate: { reward: true },
+          }
+        );
+
+        if (!user) {
+          return ctx.notFound("Không tìm thấy nhân viên với ID được cung cấp.");
+        }
+
+        // Lọc danh sách reward/phạt theo tháng và năm
+        const filteredRewards = user.reward.filter((reward) => {
+          const rewardDate = new Date(reward.date);
+          return (
+            rewardDate.getFullYear() === selectedYear &&
+            rewardDate.getMonth() + 1 === selectedMonth // `getMonth()` trả về 0 - 11, cần cộng 1
+          );
+        });
+
+        return ctx.send({
+          success: true,
+          data: filteredRewards,
+        });
+      } catch (error) {
+        strapi.log.error("Lỗi khi lấy lịch sử thưởng/phạt theo tháng:", error);
+        return ctx.internalServerError("Có lỗi xảy ra khi xử lý yêu cầu.");
       }
     },
   })

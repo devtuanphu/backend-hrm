@@ -1,0 +1,19 @@
+{
+  "collectionName": "components_share_requests",
+  "info": {
+    "displayName": "request",
+    "icon": "alien"
+  },
+  "options": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "detail": {
+      "type": "text"
+    },
+    "userId": {
+      "type": "integer"
+    }
+  }
+}

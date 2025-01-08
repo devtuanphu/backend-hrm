@@ -46,6 +46,34 @@ export interface ShareShiftEmployeeStatus extends Schema.Component {
   };
 }
 
+export interface ShareReward extends Schema.Component {
+  collectionName: 'components_share_rewards';
+  info: {
+    displayName: 'reward';
+    icon: 'alien';
+    description: '';
+  };
+  attributes: {
+    reson: Attribute.String;
+    amount: Attribute.Integer;
+    date: Attribute.Date;
+    type: Attribute.Enumeration<['reward', 'penalty']>;
+  };
+}
+
+export interface ShareRequest extends Schema.Component {
+  collectionName: 'components_share_requests';
+  info: {
+    displayName: 'request';
+    icon: 'alien';
+  };
+  attributes: {
+    name: Attribute.String;
+    detail: Attribute.Text;
+    userId: Attribute.Integer;
+  };
+}
+
 export interface ShareRateWithMonth extends Schema.Component {
   collectionName: 'components_share_rate_with_months';
   info: {
@@ -56,6 +84,35 @@ export interface ShareRateWithMonth extends Schema.Component {
     wage: Attribute.Decimal;
     startDay: Attribute.Date;
     endDay: Attribute.Date;
+  };
+}
+
+export interface ShareListTimeKeeping extends Schema.Component {
+  collectionName: 'components_share_list_time_keepings';
+  info: {
+    displayName: 'listTimeKeeping';
+    icon: 'alien';
+  };
+  attributes: {
+    timekeeper: Attribute.Relation<
+      'share.list-time-keeping',
+      'oneToMany',
+      'plugin::users-permissions.user'
+    >;
+  };
+}
+
+export interface ShareDetailCheckIn extends Schema.Component {
+  collectionName: 'components_share_detail_check_ins';
+  info: {
+    displayName: 'detailCheckIn';
+    icon: 'alien';
+    description: '';
+  };
+  attributes: {
+    type: Attribute.Enumeration<['day', 'shift', 'hours']> &
+      Attribute.DefaultTo<'hours'>;
+    description: Attribute.Text;
   };
 }
 
@@ -87,6 +144,8 @@ export interface ShareCheckIn extends Schema.Component {
     isLocation: Attribute.Boolean;
     distance: Attribute.Decimal;
     userId: Attribute.Integer;
+    isTimekeeper: Attribute.Boolean;
+    userIdTimeKeeper: Attribute.Integer;
   };
 }
 
@@ -96,7 +155,11 @@ declare module '@strapi/types' {
       'share.task-details': ShareTaskDetails;
       'share.shift': ShareShift;
       'share.shift-employee-status': ShareShiftEmployeeStatus;
+      'share.reward': ShareReward;
+      'share.request': ShareRequest;
       'share.rate-with-month': ShareRateWithMonth;
+      'share.list-time-keeping': ShareListTimeKeeping;
+      'share.detail-check-in': ShareDetailCheckIn;
       'share.config': ShareConfig;
       'share.check-in': ShareCheckIn;
     }
