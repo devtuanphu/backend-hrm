@@ -1,3 +1,13 @@
+import customNotificationService from "../src/api/notification/services/customNotification";
+import {
+  parseISO,
+  isWithinInterval,
+  subMinutes,
+  addMinutes,
+  formatISO,
+  format,
+} from "date-fns";
+
 export default {
   checkShiftsCron: {
     task: async ({ strapi }) => {
@@ -90,7 +100,93 @@ export default {
       }
     },
     options: {
-      rule: "* * * * *", // Chạy mỗi phút kiểm tra một lần
+      rule: "* * * * *",
+      tz: "Asia/Ho_Chi_Minh",
+    },
+  },
+  checkRemindEmployeesCron: {
+    task: async ({ strapi }) => {
+      const now = new Date();
+      const fifteenMinutesBefore = subMinutes(now, 15);
+
+      // Lấy các shifts từ Strapi
+      const shifts = await strapi.entityService.findMany("api::shift.shift", {
+        filters: {
+          date: { $eq: format(now, "yyyy-MM-dd") }, // Lọc shifts dựa trên ngày hiện tại
+        },
+        populate: { employeeStatuses: { populate: { user: true } } },
+      });
+
+      for (const shift of shifts) {
+        // Tạo một đối tượng Date từ trường date và startTime
+        const shiftStartTime = parseISO(`${shift.date}T${shift.startTime}`);
+        if (
+          isWithinInterval(fifteenMinutesBefore, {
+            start: subMinutes(shiftStartTime, 15),
+            end: shiftStartTime,
+          })
+        ) {
+          // Lấy ID người dùng từ employeeStatuses để gửi thông báo, chỉ lấy những người dùng có trạng thái là 'Approved'
+          const userIds = shift.employeeStatuses
+            .filter((status) => status.status === "Approved") // Thêm bộ lọc trạng thái 'Approved'
+            .map((status) => status.user && status.user.id)
+            .filter((id) => id);
+
+          if (userIds.length > 0) {
+            // Gửi thông báo
+            await customNotificationService.sendNotification(
+              userIds,
+              "Nhắc nhở ca làm việc",
+              "Bạn có ca làm việc sắp bắt đầu trong 15 phút nữa.",
+              { shiftId: shift.id }
+            );
+          }
+        }
+      }
+    },
+    options: {
+      rule: "* * * * *", // Chạy mỗi phút
+      tz: "Asia/Ho_Chi_Minh",
+    },
+  },
+  checkStaffShortagesCron: {
+    task: async ({ strapi }) => {
+      const today = format(new Date(), "yyyy-MM-dd");
+
+      // Lấy các shifts trong ngày hiện tại
+      const shifts = await strapi.entityService.findMany("api::shift.shift", {
+        filters: { date: { $eq: today } },
+        populate: {
+          shop: { populate: { owner: true } },
+          employeeStatuses: true,
+        },
+      });
+
+      for (const shift of shifts) {
+        // Đếm số nhân viên được phê duyệt
+        const approvedEmployeesCount = shift.employeeStatuses.filter(
+          (status) => status.status === "Approved"
+        ).length;
+
+        // Kiểm tra xem có đủ nhân viên không
+        if (approvedEmployeesCount < shift.maxEmployees) {
+          // Lấy thông tin chủ shop
+          const shopOwner = shift.shop.owner;
+
+          if (shopOwner) {
+            // Gửi thông báo cho chủ shop
+            await customNotificationService.sendNotification(
+              [shopOwner.id],
+              "Thiếu Nhân Viên Cho Ca Làm Việc",
+              `Ca làm ${shift.name} ngày ${shift.date} đang thiếu nhân viên. Chỉ có ${approvedEmployeesCount}/${shift.maxEmployees} nhân viên được phê duyệt.`,
+              { shiftId: shift.id }
+            );
+          }
+        }
+      }
+    },
+    options: {
+      rule: "0 * * * *", // Chạy mỗi giờ một lần
       tz: "Asia/Ho_Chi_Minh",
     },
   },
