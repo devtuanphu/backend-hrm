@@ -956,8 +956,8 @@ export default factories.createCoreController(
         const { month, year } = ctx.query;
 
         // Tạo khoảng thời gian giống như trong addCheckIn
-        const startOfMonth = new Date(year, month - 1, 2); // Ngày 2 trong logic của bạn (tương ứng 01/01)
-        const endOfMonth = new Date(year, month, 1); // Ngày cuối tháng (31/01)
+        const startOfMonth = new Date(year, month - 1, 1); // Ngày 2 trong logic của bạn (tương ứng 01/01)
+        const endOfMonth = new Date(year, month, 0); // Ngày cuối tháng (31/01)
 
         const user = await strapi.entityService.findOne(
           "plugin::users-permissions.user",
