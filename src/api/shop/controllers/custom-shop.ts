@@ -1200,12 +1200,12 @@ export default factories.createCoreController(
         const currentMonthStart = new Date(
           today.getFullYear(),
           today.getMonth(),
-          1
+          2
         ); // Ngày đầu tháng
         const currentMonthEnd = new Date(
           today.getFullYear(),
           today.getMonth() + 1,
-          0
+          1
         ); // Ngày cuối tháng
 
         const formattedStartDay = currentMonthStart.toISOString();
