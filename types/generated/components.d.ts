@@ -1,5 +1,18 @@
 import type { Schema, Attribute } from '@strapi/strapi';
 
+export interface ShareUpgradeWage extends Schema.Component {
+  collectionName: 'components_share_upgrade_wages';
+  info: {
+    displayName: 'UpgradeWage';
+    description: '';
+  };
+  attributes: {
+    userId: Attribute.Integer;
+    amount: Attribute.Integer;
+    date: Attribute.Date;
+  };
+}
+
 export interface ShareTaskDetails extends Schema.Component {
   collectionName: 'components_share_task_details';
   info: {
@@ -34,6 +47,7 @@ export interface ShareShiftEmployeeStatus extends Schema.Component {
   collectionName: 'components_share_shift_employee_statuses';
   info: {
     displayName: 'ShiftEmployeeStatus';
+    description: '';
   };
   attributes: {
     user: Attribute.Relation<
@@ -43,6 +57,23 @@ export interface ShareShiftEmployeeStatus extends Schema.Component {
     >;
     status: Attribute.Enumeration<['Pending', 'Approved', 'Rejected']>;
     registeredAt: Attribute.DateTime;
+    checkIn: Attribute.DateTime;
+    checkOut: Attribute.DateTime;
+  };
+}
+
+export interface ShareShiftArise extends Schema.Component {
+  collectionName: 'components_share_shift_arises';
+  info: {
+    displayName: 'ShiftArise';
+    description: '';
+  };
+  attributes: {
+    date: Attribute.Date;
+    startTime: Attribute.Time;
+    endTime: Attribute.Time;
+    rate: Attribute.Integer;
+    statusStaff: Attribute.Component<'share.shift-employee-status', true>;
   };
 }
 
@@ -102,6 +133,18 @@ export interface ShareListTimeKeeping extends Schema.Component {
   };
 }
 
+export interface ShareDetailDayCheckIn extends Schema.Component {
+  collectionName: 'components_share_detail_day_check_ins';
+  info: {
+    displayName: 'DetailDayCheckIn';
+    icon: 'alien';
+  };
+  attributes: {
+    date: Attribute.Date;
+    detail: Attribute.Component<'share.day-check-in', true>;
+  };
+}
+
 export interface ShareDetailCheckIn extends Schema.Component {
   collectionName: 'components_share_detail_check_ins';
   info: {
@@ -113,6 +156,24 @@ export interface ShareDetailCheckIn extends Schema.Component {
     type: Attribute.Enumeration<['day', 'shift', 'hours']> &
       Attribute.DefaultTo<'hours'>;
     description: Attribute.Text;
+  };
+}
+
+export interface ShareDayCheckIn extends Schema.Component {
+  collectionName: 'components_share_day_check_ins';
+  info: {
+    displayName: 'DayCheckIn';
+    icon: 'alien';
+    description: '';
+  };
+  attributes: {
+    checkIn: Attribute.DateTime;
+    checkOut: Attribute.DateTime;
+    nameStaff: Attribute.String;
+    position: Attribute.String;
+    work: Attribute.String;
+    wage: Attribute.Integer;
+    userId: Attribute.Integer;
   };
 }
 
@@ -146,20 +207,25 @@ export interface ShareCheckIn extends Schema.Component {
     userId: Attribute.Integer;
     isTimekeeper: Attribute.Boolean;
     userIdTimeKeeper: Attribute.Integer;
+    wage: Attribute.Integer;
   };
 }
 
 declare module '@strapi/types' {
   export module Shared {
     export interface Components {
+      'share.upgrade-wage': ShareUpgradeWage;
       'share.task-details': ShareTaskDetails;
       'share.shift': ShareShift;
       'share.shift-employee-status': ShareShiftEmployeeStatus;
+      'share.shift-arise': ShareShiftArise;
       'share.reward': ShareReward;
       'share.request': ShareRequest;
       'share.rate-with-month': ShareRateWithMonth;
       'share.list-time-keeping': ShareListTimeKeeping;
+      'share.detail-day-check-in': ShareDetailDayCheckIn;
       'share.detail-check-in': ShareDetailCheckIn;
+      'share.day-check-in': ShareDayCheckIn;
       'share.config': ShareConfig;
       'share.check-in': ShareCheckIn;
     }

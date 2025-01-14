@@ -1,7 +1,8 @@
 {
   "collectionName": "components_share_shift_employee_statuses",
   "info": {
-    "displayName": "ShiftEmployeeStatus"
+    "displayName": "ShiftEmployeeStatus",
+    "description": ""
   },
   "options": {},
   "attributes": {
@@ -19,6 +20,12 @@
       ]
     },
     "registeredAt": {
+      "type": "datetime"
+    },
+    "checkIn": {
+      "type": "datetime"
+    },
+    "checkOut": {
       "type": "datetime"
     }
   }

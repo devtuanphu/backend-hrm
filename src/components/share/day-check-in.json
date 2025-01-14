@@ -1,0 +1,32 @@
+{
+  "collectionName": "components_share_day_check_ins",
+  "info": {
+    "displayName": "DayCheckIn",
+    "icon": "alien",
+    "description": ""
+  },
+  "options": {},
+  "attributes": {
+    "checkIn": {
+      "type": "datetime"
+    },
+    "checkOut": {
+      "type": "datetime"
+    },
+    "nameStaff": {
+      "type": "string"
+    },
+    "position": {
+      "type": "string"
+    },
+    "work": {
+      "type": "string"
+    },
+    "wage": {
+      "type": "integer"
+    },
+    "userId": {
+      "type": "integer"
+    }
+  }
+}

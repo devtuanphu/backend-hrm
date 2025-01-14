@@ -1,0 +1,18 @@
+{
+  "collectionName": "components_share_detail_day_check_ins",
+  "info": {
+    "displayName": "DetailDayCheckIn",
+    "icon": "alien"
+  },
+  "options": {},
+  "attributes": {
+    "date": {
+      "type": "date"
+    },
+    "detail": {
+      "type": "component",
+      "repeatable": true,
+      "component": "share.day-check-in"
+    }
+  }
+}

@@ -22,6 +22,10 @@
       "type": "relation",
       "relation": "oneToOne",
       "target": "api::shop.shop"
+    },
+    "isManager": {
+      "type": "boolean",
+      "default": false
     }
   }
 }

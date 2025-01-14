@@ -1,0 +1,19 @@
+{
+  "collectionName": "components_share_upgrade_wages",
+  "info": {
+    "displayName": "UpgradeWage",
+    "description": ""
+  },
+  "options": {},
+  "attributes": {
+    "userId": {
+      "type": "integer"
+    },
+    "amount": {
+      "type": "integer"
+    },
+    "date": {
+      "type": "date"
+    }
+  }
+}

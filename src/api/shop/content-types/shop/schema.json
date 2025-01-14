@@ -124,6 +124,21 @@
         "hours"
       ],
       "default": "hours"
+    },
+    "reportCheckInDay": {
+      "type": "component",
+      "repeatable": true,
+      "component": "share.detail-day-check-in"
+    },
+    "shiftArire": {
+      "type": "component",
+      "repeatable": true,
+      "component": "share.shift-arise"
+    },
+    "historyWage": {
+      "type": "component",
+      "repeatable": true,
+      "component": "share.upgrade-wage"
     }
   }
 }

@@ -142,6 +142,15 @@
       "type": "component",
       "repeatable": true,
       "component": "share.reward"
+    },
+    "isWork": {
+      "type": "boolean",
+      "default": false
+    },
+    "isNotication": {
+      "type": "boolean",
+      "default": false,
+      "required": false
     }
   }
 }

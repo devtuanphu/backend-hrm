@@ -1,0 +1,27 @@
+{
+  "collectionName": "components_share_shift_arises",
+  "info": {
+    "displayName": "ShiftArise",
+    "description": ""
+  },
+  "options": {},
+  "attributes": {
+    "date": {
+      "type": "date"
+    },
+    "startTime": {
+      "type": "time"
+    },
+    "endTime": {
+      "type": "time"
+    },
+    "rate": {
+      "type": "integer"
+    },
+    "statusStaff": {
+      "type": "component",
+      "repeatable": true,
+      "component": "share.shift-employee-status"
+    }
+  }
+}

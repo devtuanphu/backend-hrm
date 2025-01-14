@@ -751,6 +751,8 @@ export interface PluginUsersPermissionsUser extends Schema.CollectionType {
     wage: Attribute.Component<'share.rate-with-month', true>;
     timekeeper: Attribute.Component<'share.list-time-keeping', true>;
     reward: Attribute.Component<'share.reward', true>;
+    isWork: Attribute.Boolean & Attribute.DefaultTo<false>;
+    isNotication: Attribute.Boolean & Attribute.DefaultTo<false>;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     createdBy: Attribute.Relation<
@@ -873,6 +875,7 @@ export interface ApiPositionPosition extends Schema.CollectionType {
       'oneToOne',
       'api::shop.shop'
     >;
+    isManager: Attribute.Boolean & Attribute.DefaultTo<false>;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     publishedAt: Attribute.DateTime;
@@ -979,6 +982,9 @@ export interface ApiShopShop extends Schema.CollectionType {
     request: Attribute.Component<'share.request', true>;
     typeCheckIn: Attribute.Enumeration<['day', 'shift', 'hours']> &
       Attribute.DefaultTo<'hours'>;
+    reportCheckInDay: Attribute.Component<'share.detail-day-check-in', true>;
+    shiftArire: Attribute.Component<'share.shift-arise', true>;
+    historyWage: Attribute.Component<'share.upgrade-wage', true>;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     publishedAt: Attribute.DateTime;

@@ -21,9 +21,9 @@ export default factories.createCoreController(
           }
         );
 
-        if (!notifications || notifications.length === 0) {
-          return ctx.notFound("Không có thông báo nào cho người dùng này.");
-        }
+        // if (!notifications || notifications.length === 0) {
+        //   return ctx.notFound("Không có thông báo nào cho người dùng này.");
+        // }
 
         return ctx.send({
           success: true,

@@ -10,6 +10,51 @@ export default {
       },
     },
     {
+      method: "PUT",
+      path: "/shops/register-shift-arire",
+      handler: "custom-shop.registerShiftArireByStaff",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "PUT",
+      path: "/shops/upgrade-wage-employee",
+      handler: "custom-shop.updateWage",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "GET",
+      path: "/shops/history-wage",
+      handler: "custom-shop.getHistoryWageByMonth",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "POST",
+      path: "/shops/createShiftArire",
+      handler: "custom-shop.createShiftArire",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "PUT",
+      path: "/shops/shift-arire/status",
+      handler: "custom-shop.updateStatusStaffShiftArire",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
       method: "POST",
       path: "/shops/validate-qr",
       handler: "custom-shop.validateQr",
@@ -139,6 +184,24 @@ export default {
       method: "GET",
       path: "/shops/:userId/rewards-history",
       handler: "custom-shop.historyRewardByUserMonth",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "GET",
+      path: "/shops/:shopId/report-check-in-day",
+      handler: "custom-shop.getreportCheckInDay",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "GET",
+      path: "/shops/:shopId/shift-arire",
+      handler: "custom-shop.getshiftArireByDate",
       config: {
         policies: [],
         middlewares: [],

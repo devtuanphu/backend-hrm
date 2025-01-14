@@ -56,12 +56,23 @@ export default factories.createCoreController(
         }
 
         const shop = await strapi.entityService.findOne("api::shop.shop", id, {
-          populate: { checkIn: true, owner: true },
+          populate: {
+            checkIn: true,
+            owner: true,
+            reportCheckInDay: {
+              populate: ["detail"], // Populate detail bên trong reportCheckInDay
+            },
+          },
         });
+
+        if (!shop.reportCheckInDay) {
+          console.log("ReportCheckInDay is missing!");
+        }
 
         if (!shop) {
           return ctx.notFound("Shop not found");
         }
+
         const { typeCheckIn } = shop;
 
         if (!typeCheckIn) {
@@ -86,92 +97,56 @@ export default factories.createCoreController(
 
         const today = new Date(checkIn.time);
         today.setHours(0, 0, 0, 0);
+        const localDateString = today.toLocaleDateString("en-CA"); // YYYY-MM-DD
+        let report = shop.reportCheckInDay.find(
+          (r) =>
+            new Date(r.date).toLocaleDateString("en-CA") === localDateString
+        );
+        console.log(report);
+
+        if (!report) {
+          report = {
+            id: Date.now(),
+            date: localDateString,
+            detail: [],
+          };
+          shop.reportCheckInDay.push(report);
+        }
+        let userDetail = report.detail.find((d) => d.userId === checkIn.userId);
+
+        if (!userDetail) {
+          // Nếu không có chi tiết báo cáo cho nhân viên này thì thêm mới
+          userDetail = {
+            id: Date.now(), // Add a unique ID
+            userId: checkIn.userId,
+            nameStaff: checkIn.name || "Không xác định",
+            position: checkIn.position || "Chưa có vị trí",
+            checkIn: checkIn.time,
+            checkOut: null,
+            work: "0",
+            wage: 0,
+          };
+          report.detail.push(userDetail);
+        }
 
         const todayCheckIns = shop.checkIn.filter(
           (c) =>
             c.userId === checkIn.userId &&
             new Date(c.time).toDateString() === today.toDateString()
         );
-
         const isCheckOut = todayCheckIns.length % 2 !== 0;
+        const isCheckIn = !isCheckOut;
 
         let wageToAdd = 0;
 
-        // if (isCheckOut) {
-        //   const lastCheckIn = todayCheckIns[todayCheckIns.length - 1];
-        //   const checkOutTime = new Date(checkIn.time);
-        //   const checkInTime = new Date(lastCheckIn.time);
-        //   const workedHours =
-        //     (checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60);
-
-        //   const user = await strapi.entityService.findOne(
-        //     "plugin::users-permissions.user",
-        //     checkIn.userId,
-        //     { populate: ["wage"] }
-        //   );
-
-        //   if (!user) {
-        //     return ctx.notFound("User not found");
-        //   }
-
-        //   const userRate = parseFloat(user.rate?.toString() || "0");
-        //   wageToAdd = workedHours * userRate;
-
-        //   const currentMonthStart = new Date(
-        //     today.getFullYear(),
-        //     today.getMonth(),
-        //     2
-        //   );
-        //   const currentMonthEnd = new Date(
-        //     today.getFullYear(),
-        //     today.getMonth() + 1,
-        //     1
-        //   );
-
-        //   const formattedCheckInTime = new Date(checkIn.time).getTime();
-
-        //   let wageEntry = user.wage.find((w) => {
-        //     const startDay = new Date(w.startDay).getTime();
-        //     const endDay = new Date(w.endDay).getTime();
-        //     return (
-        //       formattedCheckInTime >= startDay && formattedCheckInTime <= endDay
-        //     );
-        //   });
-
-        //   if (!wageEntry) {
-        //     // Tạo bản ghi wage mới nếu chưa tồn tại trong tháng này
-        //     wageEntry = {
-        //       id: user.wage.length + 1, // Assuming id is a sequential number
-        //       wage: wageToAdd,
-        //       startDay: currentMonthStart.toISOString(),
-        //       endDay: currentMonthEnd.toISOString(),
-        //     };
-        //     user.wage.push(wageEntry);
-        //   } else {
-        //     // Nếu đã có, cộng dồn wage
-        //     wageEntry.wage += wageToAdd;
-        //   }
-
-        //   await strapi.entityService.update(
-        //     "plugin::users-permissions.user",
-        //     user.id,
-        //     {
-        //       data: {
-        //         wage: user.wage.map((w) => ({
-        //           wage: w.wage,
-        //           startDay: w.startDay,
-        //           endDay: w.endDay,
-        //         })),
-        //       },
-        //     }
-        //   );
-
-        //   console.log(`Lương thêm: ${wageToAdd} cho userId: ${checkIn.userId}`);
-        // }
+        if (isCheckIn) {
+          // **Trường hợp check-in: chỉ cập nhật trường checkIn**
+          userDetail.checkIn = checkIn.time;
+          console.log(`User ${checkIn.userId} checked in at ${checkIn.time}`);
+        }
         // **Trường hợp typeCheckIn là "hours"**
         if (typeCheckIn === "hours") {
           const isCheckOut = todayCheckIns.length % 2 !== 0;
-
           if (isCheckOut) {
             const lastCheckIn = todayCheckIns[todayCheckIns.length - 1];
             const checkOutTime = new Date(checkIn.time);
@@ -193,6 +168,9 @@ export default factories.createCoreController(
             const userRate = parseFloat(user.rate?.toString() || "0");
             wageToAdd = workedHours * userRate;
 
+            userDetail.checkOut = checkIn.time;
+            userDetail.work = workedHours.toFixed(2);
+            userDetail.wage += wageToAdd;
             const currentMonthStart = new Date(
               today.getFullYear(),
               today.getMonth(),
@@ -249,7 +227,18 @@ export default factories.createCoreController(
 
         // **Trường hợp typeCheckIn là "day" hoặc "shift"**
         else if (typeCheckIn === "day" || typeCheckIn === "shift") {
-          console.log(`Chấm công theo ${typeCheckIn}`);
+          const isCheckOut = todayCheckIns.length % 2 !== 0;
+          if (isCheckOut) {
+            const lastCheckIn = todayCheckIns[todayCheckIns.length - 1];
+            const checkOutTime = new Date(checkIn.time);
+            const checkInTime = new Date(lastCheckIn.time);
+            const workedHours =
+              (checkOutTime.getTime() - checkInTime.getTime()) /
+              (1000 * 60 * 60);
+            userDetail.checkOut = checkIn.time;
+            userDetail.work = String(workedHours);
+            userDetail.wage += wageToAdd;
+          }
           const user = await strapi.entityService.findOne(
             "plugin::users-permissions.user",
             checkIn.userId,
@@ -262,7 +251,18 @@ export default factories.createCoreController(
 
           const userRate = parseFloat(user.rate?.toString() || "0");
           wageToAdd = userRate; // Thêm thẳng vào lương, xem như 1 công
-
+          if (isCheckIn) {
+            userDetail.checkIn = checkIn.time;
+          } else {
+            userDetail.checkOut = checkIn.time;
+            const checkOutTime = new Date(userDetail.checkOut);
+            const checkInTime = new Date(userDetail.checkIn);
+            const workedHours =
+              (checkOutTime.getTime() - checkInTime.getTime()) /
+              (1000 * 60 * 60); // Tính tổng giờ làm việc
+            userDetail.work = workedHours.toFixed(2); // Cập nhật giờ làm việc
+            userDetail.wage += wageToAdd;
+          }
           const currentMonthStart = new Date(
             today.getFullYear(),
             today.getMonth(),
@@ -311,6 +311,14 @@ export default factories.createCoreController(
           );
         }
 
+        const updatedReportCheckInDay = shop.reportCheckInDay.map((r) =>
+          r.date === report.date ? report : r
+        );
+
+        await strapi.entityService.update("api::shop.shop", id, {
+          data: { reportCheckInDay: updatedReportCheckInDay },
+        });
+
         const updatedCheckIn = shop.checkIn
           ? [
               ...shop.checkIn,
@@ -326,6 +334,31 @@ export default factories.createCoreController(
         const ownerId = shop.owner?.id;
 
         if (isLocation) {
+          if (isCheckIn) {
+            // Cập nhật trường isWork của người dùng thành true khi là check-in
+            await strapi.entityService.update(
+              "plugin::users-permissions.user",
+              checkIn.userId,
+              {
+                data: {
+                  isWork: true,
+                },
+              }
+            );
+            console.log(`Updated user ${checkIn.userId} to isWork: true`);
+          } else if (isCheckOut) {
+            // Cập nhật trường isWork của người dùng thành false khi là check-out
+            await strapi.entityService.update(
+              "plugin::users-permissions.user",
+              checkIn.userId,
+              {
+                data: {
+                  isWork: false,
+                },
+              }
+            );
+            console.log(`Updated user ${checkIn.userId} to isWork: false`);
+          }
           await customNotificationService.sendNotification(
             [userId],
             "Check-in thành công",
@@ -1335,6 +1368,566 @@ export default factories.createCoreController(
       } catch (error) {
         strapi.log.error("Lỗi khi lấy lịch sử thưởng/phạt theo tháng:", error);
         return ctx.internalServerError("Có lỗi xảy ra khi xử lý yêu cầu.");
+      }
+    },
+    async getreportCheckInDay(ctx) {
+      try {
+        const { shopId } = ctx.params; // Lấy shopId từ params
+        const { date } = ctx.query; // Lấy ngày từ query nếu có
+
+        // Xác định ngày tìm kiếm
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const localDateString = date || today.toLocaleDateString("en-CA"); // Nếu có `date` thì dùng `date`, nếu không thì dùng ngày hôm nay
+
+        // Tìm shop với `reportCheckInDay` theo ngày được yêu cầu
+        const shop = await strapi.entityService.findOne(
+          "api::shop.shop",
+          shopId,
+          {
+            populate: {
+              reportCheckInDay: {
+                populate: {
+                  detail: true, // Lấy chi tiết các nhân viên trong báo cáo
+                },
+              },
+            },
+          }
+        );
+
+        if (!shop) {
+          return ctx.notFound(`Không tìm thấy shop với ID: ${shopId}`);
+        }
+
+        // Tìm báo cáo trong ngày cụ thể
+        const report = shop.reportCheckInDay.find(
+          (report) =>
+            new Date(report.date).toLocaleDateString("en-CA") ===
+            localDateString
+        );
+
+        if (!report) {
+          return ctx.notFound(
+            `Không tìm thấy báo cáo cho ngày ${localDateString}`
+          );
+        }
+
+        // Trả về báo cáo
+        return ctx.send({
+          message: `Báo cáo ngày ${localDateString} cho shop ${shopId}`,
+          data: report,
+        });
+      } catch (error) {
+        strapi.log.error(`Lỗi khi lấy báo cáo: ${error.message}`);
+        return ctx.internalServerError("Có lỗi xảy ra khi lấy báo cáo");
+      }
+    },
+    async getshiftArireByDate(ctx) {
+      try {
+        const { date } = ctx.request.query; // date vẫn trong query
+        const { shopId } = ctx.params; // shopId lấy từ params
+        console.log("date", date, "shopId", shopId);
+
+        if (!date) {
+          return ctx.badRequest("Vui lòng cung cấp ngày (YYYY-MM-DD)");
+        }
+
+        if (!shopId) {
+          return ctx.badRequest("Vui lòng cung cấp shopId");
+        }
+
+        const shop = await strapi.entityService.findOne(
+          "api::shop.shop",
+          shopId,
+          {
+            filters: {
+              shiftArire: {
+                date: date, // So sánh ngày làm việc
+              },
+            },
+            populate: {
+              shiftArire: {
+                populate: ["statusStaff.user"], // Populate để lấy user trong statusStaff
+              },
+            },
+          }
+        );
+
+        if (!shop) {
+          return ctx.notFound(`Không tìm thấy shop với ID: ${shopId}`);
+        }
+
+        const result = {
+          shopId: shop.id,
+          shopName: shop.name,
+          shiftArire: shop.shiftArire.map((shift) => ({
+            id: shift.id,
+            date: shift.date,
+            startTime: shift.startTime,
+            endTime: shift.endTime,
+            rate: shift.rate,
+            statusStaff: shift.statusStaff.map((staff) => ({
+              userId: staff.user?.id || null,
+              name: staff.user?.name || "Chưa rõ",
+              status: staff.status || "N/A",
+              registeredAt: staff.registeredAt,
+            })),
+          })),
+        };
+
+        return ctx.send({
+          success: true,
+          data: result,
+          message: `Danh sách ca làm việc phát sinh cho shop ${shop.name} vào ngày ${date}`,
+        });
+      } catch (error) {
+        strapi.log.error("Lỗi khi lấy danh sách shiftArire:", error);
+        return ctx.internalServerError("Lỗi khi lấy dữ liệu shiftArire");
+      }
+    },
+    async createShiftArire(ctx) {
+      try {
+        const { shopId, date, startTime, endTime, rate, statusStaff } =
+          ctx.request.body;
+
+        // Kiểm tra các thông tin cần thiết
+        if (!shopId || !date || !startTime || !endTime || !rate) {
+          return ctx.badRequest(
+            "Vui lòng cung cấp đầy đủ thông tin: shopId, date, startTime, endTime, rate"
+          );
+        }
+
+        // Tìm shop cần thêm shiftArire
+        const shop = await strapi.entityService.findOne(
+          "api::shop.shop",
+          shopId,
+          {
+            populate: { shiftArire: true }, // Populate để lấy các ca làm việc hiện tại
+          }
+        );
+
+        if (!shop) {
+          return ctx.notFound(`Không tìm thấy shop với ID: ${shopId}`);
+        }
+
+        // Tạo một ca làm việc phát sinh mới
+        const newShiftArire = {
+          date,
+          startTime,
+          endTime,
+          rate,
+          statusStaff: statusStaff || [], // Mặc định là mảng rỗng nếu không có staff
+        };
+
+        // Push thêm ca mới vào mảng shiftArire cũ
+        const updatedShiftArireList = [
+          ...(shop.shiftArire || []),
+          newShiftArire,
+        ];
+
+        // Cập nhật shop với shiftArire mới
+        await strapi.entityService.update("api::shop.shop", shopId, {
+          data: {
+            shiftArire: updatedShiftArireList,
+          },
+        });
+
+        const users: { id: number; name: string; tokenExpo?: string }[] =
+          await strapi.entityService.findMany(
+            "plugin::users-permissions.user",
+            {
+              filters: {
+                shop: {
+                  id: shopId, // Lọc theo shop.id
+                },
+              },
+              populate: ["shop"], // Đảm bảo populate để truy cập shop.id
+              fields: ["id", "name", "tokenExpo"], // Lấy các trường cần thiết
+            }
+          );
+        const userIdsWithTokens = users
+          .filter((user) => user.tokenExpo) // Chỉ chọn nhân viên có `tokenExpo`
+          .map((user) => {
+            console.log(`Đã gửi thông báo cho: ${user.name} (ID: ${user.id})`); // Log ra tên và ID
+            return user.id.toString(); // Chuyển ID thành chuỗi nếu cần thiết
+          });
+
+        // **Gửi thông báo nếu có nhân viên**
+        if (userIdsWithTokens.length > 0) {
+          await customNotificationService.sendNotification(
+            userIdsWithTokens,
+            "Ca làm việc khẩn cấp",
+            `Ca làm từ ${startTime} đến ${endTime} vào ngày ${date} vừa được tạo!`,
+            {
+              shopId,
+              date,
+              startTime,
+              endTime,
+            }
+          );
+        }
+
+        return ctx.send({
+          success: true,
+          message: "Tạo ca làm việc phát sinh thành công!",
+          data: newShiftArire,
+        });
+      } catch (error) {
+        strapi.log.error("Lỗi khi tạo ca làm việc phát sinh:", error);
+        return ctx.internalServerError("Lỗi khi tạo ca làm việc phát sinh");
+      }
+    },
+    async updateStatusStaffShiftArire(ctx) {
+      try {
+        const { shopId, shiftArireId, userId, status } = ctx.request.body;
+
+        if (!shopId || !shiftArireId || !userId || !status) {
+          return ctx.badRequest(
+            "Vui lòng cung cấp đầy đủ thông tin: shopId, shiftArireId, userId, status."
+          );
+        }
+
+        const validStatuses = ["Pending", "Approved", "Rejected"];
+        if (!validStatuses.includes(status)) {
+          return ctx.badRequest("Trạng thái không hợp lệ.");
+        }
+
+        const shiftArire = await strapi.db.query("api::shop.shop").findOne({
+          where: {
+            id: shopId,
+            shiftArire: {
+              id: shiftArireId,
+            },
+          },
+          populate: {
+            shiftArire: {
+              populate: ["statusStaff.user"],
+            },
+          },
+        });
+
+        if (!shiftArire || !shiftArire.shiftArire.length) {
+          return ctx.notFound(
+            `Không tìm thấy ca làm việc với ID: ${shiftArireId}`
+          );
+        }
+
+        const targetShift = shiftArire.shiftArire.find(
+          (shift) => shift.id === shiftArireId
+        );
+
+        if (!targetShift || !Array.isArray(targetShift.statusStaff)) {
+          return ctx.notFound(
+            `Không tìm thấy danh sách nhân viên trong ca làm việc.`
+          );
+        }
+
+        const staffIndex = targetShift.statusStaff.findIndex(
+          (staff) => staff.user?.id === userId
+        );
+
+        if (staffIndex === -1) {
+          return ctx.notFound(
+            `Không tìm thấy nhân viên với ID: ${userId} trong ca làm việc.`
+          );
+        }
+
+        if (status === "Approved") {
+          // Lấy `user` để cập nhật `wage`
+          const user = await strapi.db
+            .query("plugin::users-permissions.user")
+            .findOne({
+              where: { id: userId },
+              populate: { wage: true },
+            });
+
+          if (!user) {
+            return ctx.notFound(`Không tìm thấy user với ID: ${userId}`);
+          }
+
+          const shiftDate = new Date(targetShift.date);
+          const year = shiftDate.getFullYear();
+          const month = shiftDate.getMonth() + 1; // tháng trong JavaScript bắt đầu từ 0
+
+          // Kiểm tra `wage` trong tháng của `shiftArire`
+          const wageIndex = user.wage.findIndex(
+            (w) =>
+              new Date(w.startDay).getFullYear() === year &&
+              new Date(w.startDay).getMonth() + 1 === month
+          );
+
+          if (wageIndex !== -1) {
+            // Nếu đã có `wage` cho tháng đó, cộng thêm `rate`
+            user.wage[wageIndex].wage += targetShift.rate;
+          } else {
+            // Nếu chưa có `wage`, thêm mới
+            user.wage.push({
+              wage: targetShift.rate,
+              startDay: new Date(year, month - 1, 1),
+              endDay: new Date(year, month, 0), // ngày cuối cùng của tháng
+            });
+          }
+
+          // Cập nhật `user` với `wage` mới
+          await strapi.entityService.update(
+            "plugin::users-permissions.user",
+            userId,
+            {
+              data: { wage: user.wage },
+            }
+          );
+        }
+
+        targetShift.statusStaff[staffIndex].status = status;
+
+        // Cập nhật dữ liệu `shiftArire` sau khi đổi trạng thái nhân viên
+        await strapi.entityService.update("api::shop.shop", shopId, {
+          data: {
+            shiftArire: shiftArire.shiftArire,
+          },
+        });
+
+        return ctx.send({
+          success: true,
+          message: `Cập nhật trạng thái thành công cho nhân viên ID: ${userId} trong ca làm việc với ID: ${shiftArireId}.`,
+          data: {
+            userId,
+            status,
+            shiftArireId,
+          },
+        });
+      } catch (error) {
+        strapi.log.error(
+          "Lỗi khi cập nhật trạng thái nhân viên trong ca làm việc:",
+          error
+        );
+        return ctx.internalServerError(
+          "Lỗi khi cập nhật trạng thái nhân viên trong ca làm việc."
+        );
+      }
+    },
+    async registerShiftArireByStaff(ctx) {
+      try {
+        const { shopId, shiftArireId, userId } = ctx.request.body;
+
+        // Kiểm tra nếu thiếu dữ liệu cần thiết
+        if (!shopId || !shiftArireId || !userId) {
+          return ctx.badRequest(
+            "Vui lòng cung cấp đầy đủ thông tin: shopId, shiftArireId, userId."
+          );
+        }
+
+        // Tìm shop và shiftArire
+        const shiftArire = await strapi.db.query("api::shop.shop").findOne({
+          where: {
+            id: shopId,
+            shiftArire: {
+              id: shiftArireId,
+            },
+          },
+          populate: {
+            shiftArire: {
+              populate: ["statusStaff.user"],
+            },
+          },
+        });
+
+        if (!shiftArire || !shiftArire.shiftArire.length) {
+          return ctx.notFound(
+            `Không tìm thấy ca làm việc với ID: ${shiftArireId}`
+          );
+        }
+
+        const targetShift = shiftArire.shiftArire.find(
+          (shift) => shift.id === shiftArireId
+        );
+
+        if (!targetShift || !Array.isArray(targetShift.statusStaff)) {
+          return ctx.notFound(
+            `Không tìm thấy danh sách nhân viên trong ca làm việc.`
+          );
+        }
+
+        // Kiểm tra xem nhân viên đã đăng ký vào ca làm việc này chưa
+        const isAlreadyRegistered = targetShift.statusStaff.some(
+          (staff) => staff.user?.id === userId
+        );
+
+        if (isAlreadyRegistered) {
+          return ctx.send({
+            success: true,
+            message: "Nhân viên đã check out ca làm này.",
+            data: {
+              userId,
+              shiftArireId,
+              status: "Already Registered",
+            },
+          });
+        }
+
+        // Thêm nhân viên vào danh sách statusStaff với trạng thái Pending
+        targetShift.statusStaff.push({
+          user: userId,
+          status: "Pending",
+          registeredAt: new Date().toISOString(), // Thời gian đăng ký
+        });
+
+        // Cập nhật lại dữ liệu shiftArire trong shop
+        await strapi.entityService.update("api::shop.shop", shopId, {
+          data: {
+            shiftArire: shiftArire.shiftArire,
+          },
+        });
+
+        return ctx.send({
+          success: true,
+          message: `Nhân viên đã vào ca làm việc khẩn cấp với.`,
+          data: {
+            userId,
+            shiftArireId,
+            status: "Pending",
+          },
+        });
+      } catch (error) {
+        strapi.log.error("Lỗi khi nhân viên đăng ký vào ca làm việc:", error);
+        return ctx.internalServerError("Lỗi khi đăng ký vào ca làm việc.");
+      }
+    },
+    async updateWage(ctx) {
+      try {
+        const { userId, shopId, amount } = ctx.request.body; // Thông tin lương mới
+        console.log("userId", userId, "shopId", shopId, "amount", amount);
+
+        if (!userId || !shopId || !amount) {
+          return ctx.badRequest(
+            "Vui lòng cung cấp đầy đủ thông tin: userId, shopId, amount."
+          );
+        }
+
+        // Lấy thông tin nhân viên từ `user`
+        const user = await strapi.entityService.findOne(
+          "plugin::users-permissions.user",
+          userId
+        );
+
+        if (!user) {
+          return ctx.notFound(`Không tìm thấy nhân viên với ID: ${userId}`);
+        }
+
+        // Cập nhật lại trường `rate` trong `user` với mức lương mới
+        await strapi.entityService.update(
+          "plugin::users-permissions.user",
+          userId,
+          {
+            data: {
+              rate: amount, // Số lương mới
+            },
+          }
+        );
+
+        // Lưu vào lịch sử tăng lương (`historyWage`) trong shop
+        const shop = await strapi.entityService.findOne(
+          "api::shop.shop",
+          shopId,
+          {
+            populate: ["historyWage"],
+          }
+        );
+
+        if (!shop) {
+          return ctx.notFound(`Không tìm thấy shop với ID: ${shopId}`);
+        }
+
+        const newHistoryWage = {
+          userId: userId,
+          amount: amount, // Số lương mới
+          date: new Date().toISOString(), // Ngày cập nhật lương
+        };
+
+        await strapi.entityService.update("api::shop.shop", shopId, {
+          data: {
+            historyWage: [...(shop.historyWage || []), newHistoryWage], // Thêm bản ghi mới vào lịch sử
+          },
+        });
+
+        return ctx.send({
+          success: true,
+          message: `Cập nhật lương thành công cho nhân viên ID: ${userId}`,
+          data: {
+            userId,
+            newRate: amount, // Trả về số lương mới
+            history: newHistoryWage,
+          },
+        });
+      } catch (error) {
+        strapi.log.error("Lỗi khi cập nhật lương:", error);
+        return ctx.internalServerError("Đã xảy ra lỗi khi cập nhật lương.");
+      }
+    },
+    async getHistoryWageByMonth(ctx) {
+      try {
+        const { shopId, month, year } = ctx.request.query; // Nhận thông tin từ query params
+
+        if (!shopId || !month || !year) {
+          return ctx.badRequest(
+            "Vui lòng cung cấp đầy đủ thông tin: shopId, month, year."
+          );
+        }
+
+        // Lấy thông tin shop và populate lịch sử lương
+        const shop = await strapi.entityService.findOne(
+          "api::shop.shop",
+          shopId,
+          {
+            populate: ["historyWage"],
+          }
+        );
+
+        if (!shop) {
+          return ctx.notFound(`Không tìm thấy shop với ID: ${shopId}`);
+        }
+
+        // Lọc lịch sử lương theo tháng và năm
+        const filteredHistory = shop.historyWage.filter((record) => {
+          const recordDate = new Date(record.date);
+          return (
+            recordDate.getMonth() + 1 === parseInt(month) && // Lưu ý: `getMonth()` trả về giá trị từ 0-11
+            recordDate.getFullYear() === parseInt(year)
+          );
+        });
+
+        // Lấy thông tin chi tiết của các user từ `userId`
+        const userDetailsPromises = filteredHistory.map(async (record) => {
+          const user = await strapi.entityService.findOne(
+            "plugin::users-permissions.user",
+            record.userId,
+            {
+              fields: ["username", "email", "rate"], // Các trường cần lấy
+            }
+          );
+
+          return {
+            ...record,
+            user: user
+              ? {
+                  username: user.username || "Không có tên",
+                  email: user.email || "Không có email",
+                  rate: user.rate || 0,
+                }
+              : null, // Nếu không tìm thấy user, trả về null
+          };
+        });
+
+        const historyWithUserDetails = await Promise.all(userDetailsPromises);
+
+        return ctx.send({
+          success: true,
+          data: historyWithUserDetails,
+          message: `Lịch sử lương cho tháng ${month}/${year} thành công.`,
+        });
+      } catch (error) {
+        strapi.log.error("Lỗi khi lấy lịch sử lương:", error);
+        return ctx.internalServerError("Đã xảy ra lỗi khi lấy lịch sử lương.");
       }
     },
   })

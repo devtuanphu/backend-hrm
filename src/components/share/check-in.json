@@ -33,6 +33,9 @@
     },
     "userIdTimeKeeper": {
       "type": "integer"
+    },
+    "wage": {
+      "type": "integer"
     }
   }
 }
