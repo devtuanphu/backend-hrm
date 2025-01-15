@@ -400,44 +400,49 @@ export default {
         for (const shift of shifts) {
           const shopId = shift.shop.id;
 
-          // Check and fetch existing daily report
+          // Fetch the shop data including existing reports
           const shopData = await strapi.entityService.findOne(
             "api::shop.shop",
             shopId,
             {
               populate: {
-                reportCheckInDay: true,
+                reportCheckInDay: {
+                  populate: {
+                    detail: true,
+                  },
+                },
               },
             }
           );
 
-          const existingReport = shopData.reportCheckInDay?.find(
+          // Find if a report for today already exists
+          let existingReport = shopData.reportCheckInDay?.find(
             (report) =>
               new Date(report.date).toLocaleDateString("en-CA") ===
               localDateString
           );
 
-          if (existingReport) {
-            // Update existing report details if needed
-            const newDetails = shift.employeeStatuses
-              .filter((es) => es.status === "Approved")
-              .map((es) => ({
-                userId: es.user?.id,
-                nameStaff: es.user?.name || "Unknown",
-                position: es.user?.position?.name || "No position",
-                checkIn: null,
-                checkOut: null,
-                work: "",
-              }));
+          // Collect new details from today's shifts
+          const newDetails = shift.employeeStatuses
+            .filter((es) => es.status === "Approved")
+            .map((es) => ({
+              userId: es.user?.id,
+              nameStaff: es.user?.name || "Unknown",
+              position: es.user?.position?.name || "No position",
+              checkIn: null,
+              checkOut: null,
+              work: "",
+            }));
 
-            // Merge new details with existing ones, avoiding duplicates
+          if (existingReport) {
+            // If a report exists, update it with new details
+            existingReport.detail = existingReport.detail || [];
             const updatedDetails = existingReport.detail.concat(
               newDetails.filter(
                 (nd) =>
                   !existingReport.detail.some((ed) => ed.userId === nd.userId)
               )
             );
-
             await strapi.entityService.update("api::shop.shop", shopId, {
               data: {
                 reportCheckInDay: [
@@ -451,27 +456,18 @@ export default {
                 ],
               },
             });
-            strapi.log.info(`Updated report for shop ID: ${shopId}`);
+            strapi.log.info(
+              `Updated report with new details for shop ID: ${shopId}`
+            );
           } else {
-            // Create a new report if none exists
-            const details = shift.employeeStatuses
-              .filter((es) => es.status === "Approved")
-              .map((es) => ({
-                userId: es.user?.id,
-                nameStaff: es.user?.name || "Unknown",
-                position: es.user?.position?.name || "No position",
-                checkIn: null,
-                checkOut: null,
-                work: "",
-              }));
-
+            // If no report exists, create a new one with today's details
             await strapi.entityService.update("api::shop.shop", shopId, {
               data: {
                 reportCheckInDay: [
                   ...(shopData.reportCheckInDay || []),
                   {
                     date: localDateString,
-                    detail: details,
+                    detail: newDetails,
                   },
                 ],
               },
@@ -484,7 +480,7 @@ export default {
       }
     },
     options: {
-      rule: "* * * * *", // Run every day at 00:00
+      rule: "0 0 * * *", // Run every day at 00:00
       tz: "Asia/Ho_Chi_Minh",
     },
   },
