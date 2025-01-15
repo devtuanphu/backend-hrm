@@ -7,6 +7,30 @@ import {
   formatISO,
   format,
 } from "date-fns";
+async function createShifts(strapi, shop, startDate, cycleLength) {
+  for (let i = 0; i < cycleLength; i++) {
+    const shiftDate = new Date(startDate);
+    shiftDate.setDate(startDate.getDate() + i);
+
+    const formattedDate = shiftDate.toISOString().split("T")[0];
+
+    for (const dailyShift of shop.shiftDaily) {
+      await strapi.entityService.create("api::shift.shift", {
+        data: {
+          shop: shop.id,
+          name: dailyShift.name,
+          startTime: dailyShift.startTime,
+          endTime: dailyShift.endTime,
+          skills: dailyShift.skills?.map((skill) => skill.id) || [],
+          maxEmployees: dailyShift.maxEmployees,
+          date: formattedDate,
+          publishedAt: new Date(),
+        },
+      });
+    }
+  }
+  strapi.log.info(`Tạo thành công ca làm mới cho shop ${shop.id}`);
+}
 
 export default {
   // checkShiftsCron: {
@@ -106,6 +130,7 @@ export default {
   //     tz: "Asia/Ho_Chi_Minh",
   //   },
   // },
+
   checkShiftsCron: {
     task: async ({ strapi }) => {
       try {
@@ -121,7 +146,7 @@ export default {
         });
 
         const today = new Date();
-        today.setHours(0, 0, 0, 0); // Đặt giờ của ngày hôm nay về 00:00 để bắt đầu từ đầu ngày
+        today.setHours(0, 0, 0, 0); // Đặt giờ của ngày hôm nay về 00:00
 
         for (const shop of shops) {
           const { repeatCycle } = shop.configShift || {};
@@ -135,54 +160,29 @@ export default {
             }
           );
 
-          let lastShiftDate = new Date(today);
-
-          if (existingShifts.length > 0) {
-            lastShiftDate = new Date(
-              existingShifts[existingShifts.length - 1].date
-            );
-          }
-
-          const twoDaysBeforeLastShift = new Date(lastShiftDate);
-          twoDaysBeforeLastShift.setDate(lastShiftDate.getDate() - 2);
-
-          if (today < twoDaysBeforeLastShift) continue; // Chỉ tạo ca mới nếu hôm nay gần với ngày cuối của ca làm đã tồn tại
+          let lastShiftDate =
+            existingShifts.length > 0
+              ? new Date(existingShifts[existingShifts.length - 1].date)
+              : null;
 
           const cycleLength = repeatCycle === "weekly" ? 7 : 30; // Chu kỳ lặp lại
-          const formattedToday = today.toISOString().split("T")[0]; // Chuyển đổi ngày hôm nay sang định dạng chuẩn
 
-          for (let i = 0; i < cycleLength; i++) {
-            const shiftDate = new Date(lastShiftDate);
-            shiftDate.setDate(lastShiftDate.getDate() + 1 + i);
-
-            const formattedDate = shiftDate.toISOString().split("T")[0];
-
-            for (const dailyShift of shop.shiftDaily) {
-              const shiftData = {
-                shop: shop.id,
-                name: dailyShift.name,
-                startTime: dailyShift.startTime,
-                endTime: dailyShift.endTime,
-                skills: dailyShift.skills?.map((skill) => skill.id) || [],
-                maxEmployees: dailyShift.maxEmployees,
-                date: formattedDate,
-                publishedAt: new Date(),
-              };
-
-              const existingShift = existingShifts.find(
-                (s) =>
-                  new Date(s.date).toISOString().split("T")[0] ===
-                    shiftData.date && s.name === shiftData.name
-              );
-              if (!existingShift) {
-                await strapi.entityService.create("api::shift.shift", {
-                  data: shiftData,
-                });
-              }
+          // Nếu chưa có ca làm nào, tạo ngay lập tức
+          if (!lastShiftDate) {
+            lastShiftDate = new Date(today);
+            createShifts(strapi, shop, lastShiftDate, cycleLength);
+          } else {
+            // Kiểm tra khi sắp hết chu kỳ
+            const daysUntilLastShift = Math.floor(
+              (lastShiftDate.getTime() - today.getTime()) /
+                (1000 * 60 * 60 * 24)
+            );
+            if (daysUntilLastShift <= 2) {
+              // Nếu còn 2 ngày hoặc ít hơn
+              lastShiftDate.setDate(lastShiftDate.getDate() + 1);
+              createShifts(strapi, shop, lastShiftDate, cycleLength);
             }
           }
-
-          strapi.log.info(`Tạo thành công ca làm mới cho shop ${shop.id}`);
         }
       } catch (error) {
         strapi.log.error("Lỗi khi chạy cron job kiểm tra shifts:", error);
