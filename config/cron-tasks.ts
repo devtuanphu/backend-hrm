@@ -292,14 +292,101 @@ export default {
       tz: "Asia/Ho_Chi_Minh",
     },
   },
+  // createDailyReports: {
+  //   task: async ({ strapi }) => {
+  //     try {
+  //       const today = new Date();
+  //       today.setHours(0, 0, 0, 0); // Đặt thời gian về đầu ngày (00:00:00)
+  //       const localDateString = today.toLocaleDateString("en-CA"); // YYYY-MM-DD
+
+  //       // Lấy tất cả shifts trong ngày hôm nay
+  //       const shifts = await strapi.entityService.findMany("api::shift.shift", {
+  //         filters: { date: localDateString },
+  //         populate: {
+  //           shop: true,
+  //           employeeStatuses: {
+  //             populate: { user: { populate: "position" } },
+  //           },
+  //         },
+  //       });
+
+  //       const shopReports = new Map(); // Map để kiểm tra các shop đã tạo báo cáo trong ngày
+
+  //       for (const shift of shifts) {
+  //         const shopId = shift.shop.id;
+
+  //         // Kiểm tra nếu shop đã có báo cáo trong `shopReports`
+  //         if (!shopReports.has(shopId)) {
+  //           // Kiểm tra báo cáo trong ngày hôm nay đã tồn tại chưa
+  //           const shopData = await strapi.entityService.findOne(
+  //             "api::shop.shop",
+  //             shopId,
+  //             {
+  //               populate: {
+  //                 reportCheckInDay: true,
+  //               },
+  //             }
+  //           );
+
+  //           const existingReport = shopData.reportCheckInDay?.find(
+  //             (report) =>
+  //               new Date(report.date).toLocaleDateString("en-CA") ===
+  //               localDateString
+  //           );
+
+  //           if (existingReport) {
+  //             shopReports.set(shopId, true); // Đánh dấu shop đã có report hôm nay
+  //             continue;
+  //           }
+
+  //           // Tạo `detail` từ tất cả `shifts` của shop trong ngày
+  //           const shiftsOfShop = shifts.filter((s) => s.shop.id === shopId);
+  //           const details = shiftsOfShop.flatMap((s) =>
+  //             s.employeeStatuses
+  //               .filter((es) => es.status === "Approved")
+  //               .map((es) => ({
+  //                 userId: es.user?.id,
+  //                 nameStaff: es.user?.name || "Chưa rõ tên",
+  //                 position: es.user?.position?.name || "Chưa có vị trí",
+  //                 checkIn: null,
+  //                 checkOut: null,
+  //                 work: "",
+  //               }))
+  //           );
+
+  //           // Tạo report mới
+  //           await strapi.entityService.update("api::shop.shop", shopId, {
+  //             data: {
+  //               reportCheckInDay: [
+  //                 ...(shopData.reportCheckInDay || []),
+  //                 {
+  //                   date: localDateString,
+  //                   detail: details,
+  //                 },
+  //               ],
+  //             },
+  //           });
+
+  //           strapi.log.info(`Tạo báo cáo thành công cho shop ID: ${shopId}`);
+  //         }
+  //       }
+  //     } catch (error) {
+  //       strapi.log.error(`Lỗi khi tạo báo cáo: ${error.message}`);
+  //     }
+  //   },
+  //   options: {
+  //     rule: "* * * * *", // Chạy mỗi ngày lúc 00:00
+  //     tz: "Asia/Ho_Chi_Minh",
+  //   },
+  // },
   createDailyReports: {
     task: async ({ strapi }) => {
       try {
         const today = new Date();
-        today.setHours(0, 0, 0, 0); // Đặt thời gian về đầu ngày (00:00:00)
+        today.setHours(0, 0, 0, 0); // Set the time to the start of the day (00:00:00)
         const localDateString = today.toLocaleDateString("en-CA"); // YYYY-MM-DD
 
-        // Lấy tất cả shifts trong ngày hôm nay
+        // Fetch all shifts for today
         const shifts = await strapi.entityService.findMany("api::shift.shift", {
           filters: { date: localDateString },
           populate: {
@@ -310,51 +397,74 @@ export default {
           },
         });
 
-        const shopReports = new Map(); // Map để kiểm tra các shop đã tạo báo cáo trong ngày
-
         for (const shift of shifts) {
           const shopId = shift.shop.id;
 
-          // Kiểm tra nếu shop đã có báo cáo trong `shopReports`
-          if (!shopReports.has(shopId)) {
-            // Kiểm tra báo cáo trong ngày hôm nay đã tồn tại chưa
-            const shopData = await strapi.entityService.findOne(
-              "api::shop.shop",
-              shopId,
-              {
-                populate: {
-                  reportCheckInDay: true,
-                },
-              }
-            );
-
-            const existingReport = shopData.reportCheckInDay?.find(
-              (report) =>
-                new Date(report.date).toLocaleDateString("en-CA") ===
-                localDateString
-            );
-
-            if (existingReport) {
-              shopReports.set(shopId, true); // Đánh dấu shop đã có report hôm nay
-              continue;
+          // Check and fetch existing daily report
+          const shopData = await strapi.entityService.findOne(
+            "api::shop.shop",
+            shopId,
+            {
+              populate: {
+                reportCheckInDay: true,
+              },
             }
+          );
 
-            // Tạo `detail` từ tất cả `shifts` của shop trong ngày
-            const shiftsOfShop = shifts.filter((s) => s.shop.id === shopId);
-            const details = shiftsOfShop.flatMap((s) =>
-              s.employeeStatuses
-                .filter((es) => es.status === "Approved")
-                .map((es) => ({
-                  userId: es.user?.id,
-                  nameStaff: es.user?.name || "Chưa rõ tên",
-                  position: es.user?.position?.name || "Chưa có vị trí",
-                  checkIn: null,
-                  checkOut: null,
-                  work: "",
-                }))
+          const existingReport = shopData.reportCheckInDay?.find(
+            (report) =>
+              new Date(report.date).toLocaleDateString("en-CA") ===
+              localDateString
+          );
+
+          if (existingReport) {
+            // Update existing report details if needed
+            const newDetails = shift.employeeStatuses
+              .filter((es) => es.status === "Approved")
+              .map((es) => ({
+                userId: es.user?.id,
+                nameStaff: es.user?.name || "Unknown",
+                position: es.user?.position?.name || "No position",
+                checkIn: null,
+                checkOut: null,
+                work: "",
+              }));
+
+            // Merge new details with existing ones, avoiding duplicates
+            const updatedDetails = existingReport.detail.concat(
+              newDetails.filter(
+                (nd) =>
+                  !existingReport.detail.some((ed) => ed.userId === nd.userId)
+              )
             );
 
-            // Tạo report mới
+            await strapi.entityService.update("api::shop.shop", shopId, {
+              data: {
+                reportCheckInDay: [
+                  ...shopData.reportCheckInDay.filter(
+                    (rep) => rep.id !== existingReport.id
+                  ),
+                  {
+                    ...existingReport,
+                    detail: updatedDetails,
+                  },
+                ],
+              },
+            });
+            strapi.log.info(`Updated report for shop ID: ${shopId}`);
+          } else {
+            // Create a new report if none exists
+            const details = shift.employeeStatuses
+              .filter((es) => es.status === "Approved")
+              .map((es) => ({
+                userId: es.user?.id,
+                nameStaff: es.user?.name || "Unknown",
+                position: es.user?.position?.name || "No position",
+                checkIn: null,
+                checkOut: null,
+                work: "",
+              }));
+
             await strapi.entityService.update("api::shop.shop", shopId, {
               data: {
                 reportCheckInDay: [
@@ -366,16 +476,15 @@ export default {
                 ],
               },
             });
-
-            strapi.log.info(`Tạo báo cáo thành công cho shop ID: ${shopId}`);
+            strapi.log.info(`Created new report for shop ID: ${shopId}`);
           }
         }
       } catch (error) {
-        strapi.log.error(`Lỗi khi tạo báo cáo: ${error.message}`);
+        strapi.log.error(`Error when creating reports: ${error.message}`);
       }
     },
     options: {
-      rule: "* * * * *", // Chạy mỗi ngày lúc 00:00
+      rule: "0 0 * * *", // Run every day at 00:00
       tz: "Asia/Ho_Chi_Minh",
     },
   },
