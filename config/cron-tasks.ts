@@ -484,7 +484,7 @@ export default {
       }
     },
     options: {
-      rule: "0 0 * * *", // Run every day at 00:00
+      rule: "* * * * *", // Run every day at 00:00
       tz: "Asia/Ho_Chi_Minh",
     },
   },
