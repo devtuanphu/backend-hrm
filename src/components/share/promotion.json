@@ -1,0 +1,20 @@
+{
+  "collectionName": "components_share_promotions",
+  "info": {
+    "displayName": "Promotion",
+    "icon": "alien",
+    "description": ""
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "detail": {
+      "type": "text"
+    },
+    "date": {
+      "type": "date"
+    }
+  }
+}

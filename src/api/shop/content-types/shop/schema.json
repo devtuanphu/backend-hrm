@@ -139,6 +139,27 @@
       "type": "component",
       "repeatable": true,
       "component": "share.upgrade-wage"
+    },
+    "promotions": {
+      "type": "component",
+      "repeatable": true,
+      "component": "share.promotion"
+    },
+    "rule": {
+      "type": "text"
+    },
+    "workflow": {
+      "type": "text"
+    },
+    "products": {
+      "type": "component",
+      "repeatable": true,
+      "component": "share.product"
+    },
+    "historyImportAndExport": {
+      "type": "component",
+      "repeatable": true,
+      "component": "share.import-and-export-history"
     }
   }
 }

@@ -19,9 +19,126 @@ export default {
       },
     },
     {
+      method: "GET",
+      path: "/shops/:shopId/promotions-by-month",
+      handler: "custom-shop.getPromotionShopByMonth",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "GET",
+      path: "/shops/:shopId/get-product-by-shop",
+      handler: "custom-shop.getProductByShop",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "POST",
+      path: "/shops/:shopId/add-product",
+      handler: "custom-shop.addProductToShop",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "DELETE",
+      path: "/shops/:shopId/delete-product/:productId",
+      handler: "custom-shop.deleteProductFromShop",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "PUT",
+      path: "/shops/:shopId/update-product/:productId",
+      handler: "custom-shop.updateProductInShop",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "GET",
+      path: "/shops/:shopId/detail-product/:productId",
+      handler: "custom-shop.getProductIdInShop",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "POST",
+      path: "/shops/:shopId/import-product/:productId",
+      handler: "custom-shop.importProduct",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "POST",
+      path: "/shops/:shopId/export-product/:productId",
+      handler: "custom-shop.exportProduct",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "GET",
+      path: "/shops/:shopId/get-birthdate-staff-by-month",
+      handler: "custom-shop.getBirthDateStaffByMonth",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "GET",
+      path: "/shops/:shopId/get-history-export-and-import-by-month",
+      handler: "custom-shop.getHistoryImportAndExportShopByMonth",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "GET",
+      path: "/shops/:shopId/profit-and-loss",
+      handler: "custom-shop.getProfitAndLoss",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "DELETE",
+      path: "/shops/:shopId/delete-promotion/:promotionId",
+      handler: "custom-shop.deletePromotionFromShop",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
       method: "PUT",
       path: "/shops/upgrade-wage-employee",
       handler: "custom-shop.updateWage",
+      config: {
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      method: "POST",
+      path: "/shops/:shopId/promotions",
+      handler: "custom-shop.addPromotionToShop",
       config: {
         policies: [],
         middlewares: [],

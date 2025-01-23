@@ -7,7 +7,20 @@ dayjs.extend(isSameOrAfter);
 import customNotificationService from "../../notification/services/customNotification";
 import Expo from "expo-server-sdk";
 import { GetValues } from "@strapi/types/dist/types/core/attributes";
+interface Product {
+  id: number;
+  name: string;
+  description?: string;
+  amount: number;
+  image?: any; // Nếu image là một Media, bạn có thể định nghĩa chi tiết hơn
+  priceImport: number;
+  priceExport: number;
+}
 
+interface Shop {
+  id: number;
+  products: Product[]; // Mảng sản phẩm
+}
 const haversineDistance = (lat1, lon1, lat2, lon2) => {
   const toRad = (value) => (value * Math.PI) / 180;
   const R = 6371e3; // Bán kính Trái Đất tính bằng mét
@@ -1318,8 +1331,6 @@ export default factories.createCoreController(
       try {
         const { userId } = ctx.params; // Lấy userId từ URL params
         const { month, year } = ctx.request.query; // Lấy tháng và năm từ query params
-        console.log("userId", userId, "month", month, "year", year);
-
         if (!userId || !month || !year) {
           return ctx.badRequest(
             "Vui lòng cung cấp userId, tháng (month) và năm (year)."
@@ -1928,6 +1939,758 @@ export default factories.createCoreController(
       } catch (error) {
         strapi.log.error("Lỗi khi lấy lịch sử lương:", error);
         return ctx.internalServerError("Đã xảy ra lỗi khi lấy lịch sử lương.");
+      }
+    },
+    async getPromotionShopByMonth(ctx) {
+      try {
+        const { shopId } = ctx.params;
+        const { month, year } = ctx.request.query;
+
+        if (!shopId || !month || !year) {
+          return ctx.badRequest("Please provide shopId, month, and year.");
+        }
+
+        // Fetch the shop and populate its promotions
+        const shop = await strapi.entityService.findOne(
+          "api::shop.shop",
+          shopId,
+          {
+            populate: ["promotions"],
+          }
+        );
+
+        if (!shop) {
+          return ctx.notFound(`No shop found with ID: ${shopId}`);
+        }
+
+        // Filter promotions based on month and year
+        const filteredPromotions = shop.promotions.filter((promo) => {
+          const promoDate = new Date(promo.date);
+          return (
+            promoDate.getMonth() + 1 === parseInt(month, 10) && // getMonth() returns 0-11
+            promoDate.getFullYear() === parseInt(year, 10)
+          );
+        });
+
+        return ctx.send({
+          success: true,
+          data: filteredPromotions,
+          message: `Promotions for shop ${shopId} for month ${month}/${year} retrieved successfully.`,
+        });
+      } catch (error) {
+        strapi.log.error("Error retrieving promotions by month:", error);
+        return ctx.internalServerError(
+          "An error occurred while processing the request."
+        );
+      }
+    },
+    async addPromotionToShop(ctx) {
+      try {
+        const { shopId } = ctx.params;
+        const { title, detail, date } = ctx.request.body;
+
+        if (!title || !date) {
+          return ctx.badRequest(
+            "Missing required fields: title, detail, date."
+          );
+        }
+
+        // Fetch the shop to add the promotion to
+        const shop = await strapi.entityService.findOne(
+          "api::shop.shop",
+          shopId,
+          {
+            populate: ["promotions"],
+          }
+        );
+
+        if (!shop) {
+          return ctx.notFound(`No shop found with ID: ${shopId}`);
+        }
+
+        // Create the promotion object
+        const newPromotion = {
+          title,
+          detail,
+          date: new Date(date),
+        };
+
+        // Assuming the promotions field in the shop model is an array of components
+        const updatedPromotions = [...shop.promotions, newPromotion];
+
+        // Update the shop with the new list of promotions
+        const updatedShop = await strapi.entityService.update(
+          "api::shop.shop",
+          shopId,
+          {
+            data: {
+              promotions: updatedPromotions,
+            },
+          }
+        );
+        return ctx.send({
+          message: "Promotion added successfully to shop",
+          data: updatedShop,
+        });
+      } catch (error) {
+        strapi.log.error("Error adding promotion to shop:", error);
+        return ctx.internalServerError("Failed to add promotion.");
+      }
+    },
+    async deletePromotionFromShop(ctx) {
+      try {
+        const { shopId, promotionId } = ctx.params;
+
+        // Fetch the shop and its promotions
+        const shop = await strapi.entityService.findOne(
+          "api::shop.shop",
+          shopId,
+          {
+            populate: ["promotions"],
+          }
+        );
+
+        if (!shop) {
+          return ctx.notFound(`No shop found with ID: ${shopId}`);
+        }
+
+        // Check if the promotion exists
+        const promotionExists = shop.promotions.some(
+          (promo) => promo.id === parseInt(promotionId, 10)
+        );
+        if (!promotionExists) {
+          return ctx.notFound(`No promotion found with ID: ${promotionId}`);
+        }
+
+        // Remove the promotion from the list
+        const updatedPromotions = shop.promotions.filter(
+          (promo) => promo.id !== parseInt(promotionId, 10)
+        );
+
+        // Update the shop with the new list of promotions
+        const updatedShop = await strapi.entityService.update(
+          "api::shop.shop",
+          shopId,
+          {
+            data: {
+              promotions: updatedPromotions,
+            },
+          }
+        );
+
+        return ctx.send({
+          message: "Promotion deleted successfully from shop",
+          data: updatedShop,
+        });
+      } catch (error) {
+        strapi.log.error("Error deleting promotion from shop:", error);
+        return ctx.internalServerError("Failed to delete promotion.");
+      }
+    },
+    async getBirthDateStaffByMonth(ctx) {
+      try {
+        const { shopId } = ctx.params; // Lấy shopId từ params
+        const { month } = ctx.query; // Lấy tháng từ query
+
+        if (!shopId || !month) {
+          return ctx.badRequest("Vui lòng cung cấp đầy đủ shopId và month.");
+        }
+
+        // Tìm kiếm nhân viên thuộc shop và kiểm tra tháng sinh
+        const users = await strapi.entityService.findMany(
+          "plugin::users-permissions.user",
+          {
+            filters: {
+              shop: shopId,
+              birthdate: {
+                $notNull: true, // Chỉ lấy nhân viên có birthdate khác null
+              },
+            },
+            populate: ["shop"], // Nếu cần lấy thêm thông tin shop
+          }
+        );
+
+        // Lọc nhân viên có tháng sinh trùng với tháng được yêu cầu
+        const filteredUsers = users.filter((user) => {
+          const birthdate = new Date(user.birthdate);
+          return birthdate.getMonth() + 1 === parseInt(month); // Lọc theo tháng
+        });
+
+        if (!filteredUsers.length) {
+          return ctx.notFound(
+            "Không tìm thấy nhân viên nào có sinh nhật trong tháng yêu cầu."
+          );
+        }
+
+        return ctx.send({
+          message: "Danh sách nhân viên tìm thấy thành công.",
+          data: filteredUsers,
+        });
+      } catch (error) {
+        strapi.log.error("Lỗi khi lấy danh sách nhân viên:", error);
+        return ctx.internalServerError(
+          "Có lỗi xảy ra khi lấy danh sách nhân viên."
+        );
+      }
+    },
+    async getProductByShop(ctx) {
+      try {
+        const { shopId } = ctx.params; // Lấy shopId từ params URL
+
+        if (!shopId) {
+          return ctx.badRequest("Shop ID is required");
+        }
+
+        // Tìm shop dựa trên shopId và populate products cùng image
+        const shop = await strapi.entityService.findOne(
+          "api::shop.shop",
+          shopId,
+          {
+            populate: {
+              products: {
+                populate: ["image"], // Populate cả image trong products
+                sort: { id: "desc" }, // Sắp xếp sản phẩm theo id giảm dần
+              },
+            },
+          }
+        );
+
+        if (!shop) {
+          return ctx.notFound("Shop not found");
+        }
+
+        // Trả về danh sách sản phẩm (products) của shop
+        return ctx.send({
+          success: true,
+          data: shop.products || [], // Trả về danh sách products hoặc mảng rỗng nếu không có
+        });
+      } catch (error) {
+        console.error("Error fetching products by shop:", error);
+        return ctx.internalServerError("Unable to fetch products");
+      }
+    },
+    async addProductToShop(ctx) {
+      try {
+        const { shopId } = ctx.params; // Lấy shopId từ params URL
+        const { name, description, amount, image, priceImport, priceExport } =
+          ctx.request.body; // Dữ liệu sản phẩm từ request body
+
+        if (!shopId) {
+          return ctx.badRequest("Shop ID is required");
+        }
+
+        if (!name || !priceImport || !priceExport) {
+          return ctx.badRequest(
+            "Name, priceImport, and priceExport are required fields"
+          );
+        }
+
+        // Tìm shop và populate products
+        const shop = await strapi.entityService.findOne(
+          "api::shop.shop",
+          shopId,
+          {
+            populate: ["products"],
+          }
+        );
+
+        if (!shop) {
+          return ctx.notFound("Shop not found");
+        }
+
+        // Tạo sản phẩm mới
+        const newProduct = {
+          name,
+          description: description || "", // Mặc định description là chuỗi rỗng
+          amount: amount || 0, // Mặc định amount là 0 nếu không có
+          image,
+          priceImport,
+          priceExport,
+        };
+
+        // Thêm sản phẩm vào danh sách products hiện có
+        const updatedProducts = shop.products
+          ? [...shop.products, newProduct]
+          : [newProduct];
+
+        // Cập nhật shop với danh sách products mới
+        const updatedShop = await strapi.entityService.update(
+          "api::shop.shop",
+          shopId,
+          {
+            data: {
+              products: updatedProducts, // Cập nhật danh sách sản phẩm
+            },
+          }
+        );
+
+        return ctx.send({
+          success: true,
+          message: "Product added successfully",
+          data: updatedShop,
+        });
+      } catch (error) {
+        console.error("Error adding product to shop:", error);
+        return ctx.internalServerError("Unable to add product to shop");
+      }
+    },
+    async deleteProductFromShop(ctx) {
+      try {
+        const { shopId, productId } = ctx.params; // Lấy shopId và productId từ URL params
+
+        if (!shopId || !productId) {
+          return ctx.badRequest("Shop ID and Product ID are required");
+        }
+
+        // Tìm shop và populate danh sách products
+        const shop = await strapi.entityService.findOne(
+          "api::shop.shop",
+          shopId,
+          {
+            populate: ["products"],
+          }
+        );
+
+        if (!shop) {
+          return ctx.notFound("Shop not found");
+        }
+
+        // Kiểm tra xem sản phẩm có tồn tại trong danh sách không
+        const productExists = shop.products.some(
+          (product) => product.id === parseInt(productId, 10)
+        );
+
+        if (!productExists) {
+          return ctx.notFound("Product not found in the shop");
+        }
+
+        // Lọc bỏ sản phẩm có `id` tương ứng
+        const updatedProducts = shop.products.filter(
+          (product) => product.id !== parseInt(productId, 10)
+        );
+
+        // Cập nhật lại danh sách products của shop
+        const updatedShop = await strapi.entityService.update(
+          "api::shop.shop",
+          shopId,
+          {
+            data: {
+              products: updatedProducts,
+            },
+          }
+        );
+
+        return ctx.send({
+          success: true,
+          message: "Product deleted successfully",
+          data: updatedShop,
+        });
+      } catch (error) {
+        console.error("Error deleting product from shop:", error);
+        return ctx.internalServerError("Unable to delete product");
+      }
+    },
+    async updateProductInShop(ctx) {
+      try {
+        const { shopId, productId } = ctx.params; // Lấy shopId và productId từ params URL
+        const { name, description, amount, priceImport, priceExport, image } =
+          ctx.request.body; // Dữ liệu sản phẩm từ request body
+
+        if (!shopId) {
+          return ctx.badRequest("Shop ID is required");
+        }
+
+        if (!productId) {
+          return ctx.badRequest("Product ID is required");
+        }
+
+        // Tìm shop và populate danh sách products
+        const shop = await strapi.entityService.findOne(
+          "api::shop.shop",
+          shopId,
+          {
+            populate: ["products"],
+          }
+        );
+
+        if (!shop) {
+          return ctx.notFound("Shop not found");
+        }
+
+        // Tìm sản phẩm cần cập nhật
+        const productIndex = shop.products.findIndex(
+          (product) => product.id === parseInt(productId, 10)
+        );
+
+        if (productIndex === -1) {
+          return ctx.notFound("Product not found in the shop");
+        }
+
+        // Lấy sản phẩm cần cập nhật
+        const productToUpdate = shop.products[productIndex];
+
+        // Cập nhật thông tin sản phẩm
+        const updatedProduct = {
+          ...productToUpdate, // Giữ nguyên các trường hiện tại
+          name: name || productToUpdate.name,
+          description: description || productToUpdate.description,
+          amount: amount || productToUpdate.amount,
+          priceImport: priceImport || productToUpdate.priceImport,
+          priceExport: priceExport || productToUpdate.priceExport,
+          image: image || productToUpdate.image, // Giữ nguyên ảnh cũ nếu không có ảnh mới
+        };
+
+        // Cập nhật sản phẩm trong danh sách
+        shop.products[productIndex] = updatedProduct;
+
+        // Cập nhật toàn bộ shop với danh sách products mới
+        const updatedShop = await strapi.entityService.update(
+          "api::shop.shop",
+          shopId,
+          {
+            data: {
+              products: shop.products,
+            },
+          }
+        );
+
+        return ctx.send({
+          success: true,
+          message: "Product updated successfully",
+          data: updatedShop,
+        });
+      } catch (error) {
+        console.error("Error updating product in shop:", error);
+        return ctx.internalServerError("Unable to update product in shop");
+      }
+    },
+    async getProductIdInShop(ctx) {
+      try {
+        const { shopId, productId } = ctx.params; // Lấy shopId và productId từ params URL
+
+        if (!shopId || !productId) {
+          return ctx.badRequest("Shop ID and Product ID are required");
+        }
+
+        // Tìm shop dựa trên shopId và populate sản phẩm
+        const shop: Shop & { products: Product[] } =
+          await strapi.entityService.findOne("api::shop.shop", shopId, {
+            populate: ["products", "products.image"], // Populate cả sản phẩm và ảnh
+          });
+
+        if (!shop) {
+          return ctx.notFound("Shop not found");
+        }
+
+        // Tìm sản phẩm trong danh sách sản phẩm của shop
+        const product = shop.products.find(
+          (prod) => prod.id === parseInt(productId, 10)
+        );
+
+        if (!product) {
+          return ctx.notFound("Product not found in shop");
+        }
+
+        // Trả về thông tin sản phẩm
+        return ctx.send({
+          success: true,
+          data: product,
+        });
+      } catch (error) {
+        console.error("Error fetching product in shop:", error);
+        return ctx.internalServerError("Unable to fetch product in shop");
+      }
+    },
+
+    async importProduct(ctx) {
+      try {
+        const { shopId, productId } = ctx.params;
+        const { amountToAdd, userActionId } = ctx.request.body;
+
+        if (!amountToAdd || amountToAdd <= 0) {
+          return ctx.badRequest("Amount to add must be greater than 0");
+        }
+
+        // Lấy shop và populate products
+        const shop = await strapi.entityService.findOne(
+          "api::shop.shop",
+          shopId,
+          {
+            populate: ["products", "historyImportAndExport"],
+          }
+        );
+
+        if (!shop) {
+          return ctx.notFound("Shop not found");
+        }
+
+        // Tìm sản phẩm cần nhập hàng
+        const productIndex = shop.products.findIndex(
+          (product) => product.id === parseInt(productId, 10)
+        );
+
+        if (productIndex === -1) {
+          return ctx.notFound("Product not found");
+        }
+
+        // Cập nhật amount
+        shop.products[productIndex].amount += amountToAdd;
+
+        // Ghi vào lịch sử nhập/xuất
+        const newHistoryEntry = {
+          idProduct: productId,
+          amount: amountToAdd,
+          type: "IMPORT" as const, // Loại nhập
+          date: new Date(),
+          userActionId,
+        };
+
+        const updatedHistory = shop.historyImportAndExport
+          ? [...shop.historyImportAndExport, newHistoryEntry]
+          : [newHistoryEntry];
+
+        // Lưu thay đổi
+        const updatedShop = await strapi.entityService.update(
+          "api::shop.shop",
+          shopId,
+          {
+            data: {
+              products: shop.products,
+              historyImportAndExport: updatedHistory,
+            },
+          }
+        );
+
+        return ctx.send({
+          success: true,
+          message: "Product imported successfully",
+          data: updatedShop,
+        });
+      } catch (error) {
+        console.error("Error importing product:", error);
+        return ctx.internalServerError("Unable to import product");
+      }
+    },
+    async exportProduct(ctx) {
+      try {
+        const { shopId, productId } = ctx.params;
+        const { amountToSubtract, userActionId } = ctx.request.body;
+
+        if (!amountToSubtract || amountToSubtract <= 0) {
+          return ctx.badRequest("Amount to subtract must be greater than 0");
+        }
+
+        // Lấy shop và populate products
+        const shop = await strapi.entityService.findOne(
+          "api::shop.shop",
+          shopId,
+          {
+            populate: ["products", "historyImportAndExport"],
+          }
+        );
+
+        if (!shop) {
+          return ctx.notFound("Shop not found");
+        }
+
+        // Tìm sản phẩm cần xuất hàng
+        const productIndex = shop.products.findIndex(
+          (product) => product.id === parseInt(productId, 10)
+        );
+
+        if (productIndex === -1) {
+          return ctx.notFound("Product not found");
+        }
+
+        if (shop.products[productIndex].amount < amountToSubtract) {
+          return ctx.badRequest("Not enough stock to export");
+        }
+
+        // Cập nhật amount
+        shop.products[productIndex].amount -= amountToSubtract;
+
+        // Ghi vào lịch sử nhập/xuất
+        const newHistoryEntry = {
+          idProduct: productId,
+          amount: amountToSubtract,
+          type: "EXPORT" as const, // Loại xuất
+          date: new Date(),
+          userActionId,
+        };
+
+        const updatedHistory = shop.historyImportAndExport
+          ? [...shop.historyImportAndExport, newHistoryEntry]
+          : [newHistoryEntry];
+
+        // Lưu thay đổi
+        const updatedShop = await strapi.entityService.update(
+          "api::shop.shop",
+          shopId,
+          {
+            data: {
+              products: shop.products,
+              historyImportAndExport: updatedHistory,
+            },
+          }
+        );
+
+        return ctx.send({
+          success: true,
+          message: "Product exported successfully",
+          data: updatedShop,
+        });
+      } catch (error) {
+        console.error("Error exporting product:", error);
+        return ctx.internalServerError("Unable to export product");
+      }
+    },
+    async getHistoryImportAndExportShopByMonth(ctx) {
+      try {
+        const { shopId } = ctx.params; // Lấy shopId từ URL params
+        const { month, year } = ctx.query; // Lấy tháng và năm từ query params
+
+        // Kiểm tra thông tin bắt buộc
+        if (!shopId || !month || !year) {
+          return ctx.badRequest("Shop ID, month, and year are required");
+        }
+
+        // Lấy thông tin shop và populate lịch sử nhập/xuất
+        const shop = await strapi.entityService.findOne(
+          "api::shop.shop",
+          shopId,
+          {
+            populate: ["historyImportAndExport", "products"], // Populate lịch sử nhập/xuất và products
+          }
+        );
+
+        if (!shop) {
+          return ctx.notFound("Shop not found");
+        }
+
+        // Lọc lịch sử theo tháng và năm
+        const filteredHistory = shop.historyImportAndExport.filter(
+          (history) => {
+            const historyDate = new Date(history.date);
+            return (
+              historyDate.getMonth() + 1 === parseInt(month, 10) &&
+              historyDate.getFullYear() === parseInt(year, 10)
+            );
+          }
+        );
+
+        // Lấy thông tin người dùng từ plugin User Permissions
+        const userIds = [
+          ...new Set(filteredHistory.map((item) => item.userActionId)),
+        ]; // Lấy danh sách ID người dùng duy nhất
+        const users = await strapi.plugins[
+          "users-permissions"
+        ].services.user.fetchAll({
+          id_in: userIds, // Tìm user theo danh sách ID
+        });
+
+        // Lấy danh sách ID sản phẩm và thông tin sản phẩm từ shop
+        const productIds = [
+          ...new Set(filteredHistory.map((item) => item.idProduct)),
+        ]; // Lấy danh sách ID sản phẩm duy nhất
+        const products = shop.products.filter((product) =>
+          productIds.includes(Number(product.id))
+        );
+
+        // Bổ sung thông tin chi tiết vào lịch sử
+        const historyWithDetails = filteredHistory.map((item) => {
+          const user = users.find((u) => u.id === item.userActionId) || null; // Tìm thông tin user
+          const product = products.find((p) => p.id === item.idProduct) || null; // Tìm thông tin sản phẩm
+
+          return {
+            ...item,
+            user: user
+              ? {
+                  id: user.id,
+                  username: user.username,
+                  email: user.email,
+                  name: user.name,
+                }
+              : null,
+            product: product
+              ? {
+                  id: product.id,
+                  name: product.name,
+                  description: product.description,
+                }
+              : null,
+          };
+        });
+
+        return ctx.send({
+          success: true,
+          data: historyWithDetails,
+        });
+      } catch (error) {
+        console.error("Error fetching history with details:", error);
+        return ctx.internalServerError("Unable to fetch history with details");
+      }
+    },
+    async getProfitAndLoss(ctx) {
+      try {
+        const { shopId } = ctx.params; // Lấy shopId từ params
+        const { month, year } = ctx.query; // Lấy tháng/năm từ query params
+
+        if (!shopId || !month || !year) {
+          return ctx.badRequest("Shop ID, month, and year are required.");
+        }
+
+        // Lấy shop và populate lịch sử nhập/xuất
+        const shop = await strapi.entityService.findOne(
+          "api::shop.shop",
+          shopId,
+          {
+            populate: ["historyImportAndExport", "products"],
+          }
+        );
+
+        if (!shop) {
+          return ctx.notFound("Shop not found.");
+        }
+
+        // Lọc lịch sử nhập/xuất theo tháng và năm
+        const filteredHistory = shop.historyImportAndExport.filter((record) => {
+          const recordDate = new Date(record.date);
+          return (
+            recordDate.getMonth() + 1 === parseInt(month) &&
+            recordDate.getFullYear() === parseInt(year)
+          );
+        });
+
+        // Tính tổng giá trị nhập và xuất
+        let totalImport = 0;
+        let totalExport = 0;
+
+        for (const record of filteredHistory) {
+          const product = shop.products.find((p) => p.id === record.idProduct);
+
+          if (product) {
+            if (record.type === "IMPORT") {
+              totalImport += record.amount * product.priceImport;
+            } else if (record.type === "EXPORT") {
+              totalExport += record.amount * product.priceExport;
+            }
+          }
+        }
+
+        // Tính lãi/lỗ
+        const profit = totalExport - totalImport;
+
+        return ctx.send({
+          success: true,
+          data: {
+            totalImport,
+            totalExport,
+            profit,
+          },
+        });
+      } catch (error) {
+        console.error("Error calculating profit and loss:", error);
+        return ctx.internalServerError("Unable to calculate profit and loss.");
       }
     },
   })

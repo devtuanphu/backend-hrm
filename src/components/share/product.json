@@ -1,0 +1,37 @@
+{
+  "collectionName": "components_share_products",
+  "info": {
+    "displayName": "Product",
+    "icon": "alien",
+    "description": ""
+  },
+  "options": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "text"
+    },
+    "amount": {
+      "type": "integer"
+    },
+    "image": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "priceImport": {
+      "type": "integer"
+    },
+    "priceExport": {
+      "type": "integer"
+    }
+  }
+}

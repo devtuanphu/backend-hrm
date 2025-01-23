@@ -343,5 +343,6 @@ module.exports = (plugin) => {
       return ctx.internalServerError("Không thể cập nhật ExpoPushToken!");
     }
   };
+
   return plugin;
 };

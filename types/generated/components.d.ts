@@ -118,6 +118,37 @@ export interface ShareRateWithMonth extends Schema.Component {
   };
 }
 
+export interface SharePromotion extends Schema.Component {
+  collectionName: 'components_share_promotions';
+  info: {
+    displayName: 'Promotion';
+    icon: 'alien';
+    description: '';
+  };
+  attributes: {
+    title: Attribute.String;
+    detail: Attribute.Text;
+    date: Attribute.Date;
+  };
+}
+
+export interface ShareProduct extends Schema.Component {
+  collectionName: 'components_share_products';
+  info: {
+    displayName: 'Product';
+    icon: 'alien';
+    description: '';
+  };
+  attributes: {
+    name: Attribute.String;
+    description: Attribute.Text;
+    amount: Attribute.Integer;
+    image: Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
+    priceImport: Attribute.Integer;
+    priceExport: Attribute.Integer;
+  };
+}
+
 export interface ShareListTimeKeeping extends Schema.Component {
   collectionName: 'components_share_list_time_keepings';
   info: {
@@ -130,6 +161,22 @@ export interface ShareListTimeKeeping extends Schema.Component {
       'oneToMany',
       'plugin::users-permissions.user'
     >;
+  };
+}
+
+export interface ShareImportAndExportHistory extends Schema.Component {
+  collectionName: 'components_share_import_and_export_histories';
+  info: {
+    displayName: 'ImportAndExportHistory';
+    icon: 'alien';
+    description: '';
+  };
+  attributes: {
+    idProduct: Attribute.Integer;
+    amount: Attribute.Decimal;
+    type: Attribute.Enumeration<['EXPORT', 'IMPORT']>;
+    date: Attribute.Date;
+    userActionId: Attribute.Integer;
   };
 }
 
@@ -222,7 +269,10 @@ declare module '@strapi/types' {
       'share.reward': ShareReward;
       'share.request': ShareRequest;
       'share.rate-with-month': ShareRateWithMonth;
+      'share.promotion': SharePromotion;
+      'share.product': ShareProduct;
       'share.list-time-keeping': ShareListTimeKeeping;
+      'share.import-and-export-history': ShareImportAndExportHistory;
       'share.detail-day-check-in': ShareDetailDayCheckIn;
       'share.detail-check-in': ShareDetailCheckIn;
       'share.day-check-in': ShareDayCheckIn;

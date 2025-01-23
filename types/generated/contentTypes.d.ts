@@ -753,6 +753,7 @@ export interface PluginUsersPermissionsUser extends Schema.CollectionType {
     reward: Attribute.Component<'share.reward', true>;
     isWork: Attribute.Boolean & Attribute.DefaultTo<false>;
     isNotication: Attribute.Boolean & Attribute.DefaultTo<false>;
+    birthdate: Attribute.Date;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     createdBy: Attribute.Relation<
@@ -985,6 +986,14 @@ export interface ApiShopShop extends Schema.CollectionType {
     reportCheckInDay: Attribute.Component<'share.detail-day-check-in', true>;
     shiftArire: Attribute.Component<'share.shift-arise', true>;
     historyWage: Attribute.Component<'share.upgrade-wage', true>;
+    promotions: Attribute.Component<'share.promotion', true>;
+    rule: Attribute.Text;
+    workflow: Attribute.Text;
+    products: Attribute.Component<'share.product', true>;
+    historyImportAndExport: Attribute.Component<
+      'share.import-and-export-history',
+      true
+    >;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     publishedAt: Attribute.DateTime;

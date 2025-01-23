@@ -1,0 +1,30 @@
+{
+  "collectionName": "components_share_import_and_export_histories",
+  "info": {
+    "displayName": "ImportAndExportHistory",
+    "icon": "alien",
+    "description": ""
+  },
+  "options": {},
+  "attributes": {
+    "idProduct": {
+      "type": "integer"
+    },
+    "amount": {
+      "type": "decimal"
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": [
+        "EXPORT",
+        "IMPORT"
+      ]
+    },
+    "date": {
+      "type": "date"
+    },
+    "userActionId": {
+      "type": "integer"
+    }
+  }
+}
